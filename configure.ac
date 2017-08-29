@@ -314,6 +314,7 @@ dnl *** plug-ins to include ***
 
 dnl these are all the gst plug-ins, compilable without additional libs
 dnl of EXT plugins
+AM_CONDITIONAL(USE_RKV4L2, false)
 AM_CONDITIONAL(USE_KMS, false)
 AM_CONDITIONAL(USE_RKXIMAGE, false)
 
@@ -381,6 +382,12 @@ AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 dnl *** output files ***
 
+dnl *** rkv4l2 ***
+translit(dnm, m, l) AM_CONDITIONAL(USE_RKV4L2, true)
+AG_GST_CHECK_FEATURE(RKV4L2, [v4l2 libraries], rkv4l2, [
+  PKG_CHECK_MODULES([RKV4L2], [libv4l2], HAVE_RKV4L2=yes, HAVE_RKV4L2=no)
+])
+
 dnl *** kms ***
 translit(dnm, m, l) AM_CONDITIONAL(USE_KMS, true)
 AG_GST_CHECK_FEATURE(KMS, [drm/kms libraries], kms, [
@@ -401,6 +408,7 @@ gst-libs/gst/Makefile
 gst/Makefile
 gst/rkximage/Makefile
 gst/kms/Makefile
+gst/v4l2/Makefile
 common/Makefile
 common/m4/Makefile
 m4/Makefile
