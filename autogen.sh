@@ -13,8 +13,7 @@ test -n "$srcdir" || srcdir=.
 olddir=`pwd`
 cd "$srcdir"
 
-package=gstreamer-rockchip
-srcfile=gstreamer-rockchip.doap
+package=gstreamer-rockchip-extra
 
 # Make sure we have common
 if test ! -f common/gst-autogen.sh;
