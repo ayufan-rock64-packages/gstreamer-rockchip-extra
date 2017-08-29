@@ -1,0 +1,14 @@
+Source: gstreamer1.0-rockchip-extra
+Priority: optional
+Maintainer: Jacob Chen <jacob2.chen@rock-chips.com>
+Build-Depends: debhelper (>= 9), autotools-dev
+Standards-Version: 3.9.8
+Section: libs
+Homepage: http://www.rock-chips.com/
+#Vcs-Git: https://anonscm.debian.org/collab-maint/gst-plugins-rk-intel.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/gst-plugins-rk-intel.git
+
+Package: gstreamer1.0-rockchip1-extra
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The Extra Gstreamer plugins for Rockchip platform.

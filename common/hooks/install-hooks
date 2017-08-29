@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+# install-hooks
+#
+# install hooks on git server
+#
+# usage: install-hooks [GIT_REPOSITORY_DIR]
+
+set -e
+
+HOOKS="update post-receive"
+
+# if directory where git repositories are is specified, change into that
+if ! test -z $1 ; then
+  cd $1;
+fi
+
+# save it
+gitrepodir=`pwd`
+
+# make backup of previous hooks
+timestamp=`date +%F-%H%M%S`
+for hook in $HOOKS; do
+  if [ -e $hook ]; then
+    cp $hook $hook.backup-$timestamp
+  fi
+done
+
+# now check out the common module with the latest hooks
+tmpdir=`mktemp -d`
+if test -z $tmpdir; then
+  echo "Failed to create temp dir"
+  exit 1;
+fi
+
+pushd $tmpdir >/dev/null
+git clone --branch=master $gitrepodir/common
+
+# copy over latest hooks into directory with git repositories
+for hook in $HOOKS; do
+  cp -v common/hooks/$hook.hook $gitrepodir/$hook
+done
+
+# now switch back to directory where the git repositories are
+popd >/dev/null
+
+# clean up temp checkout of common dir
+rm -rf $tmpdir
+
+# remove backup again if it is identical to the new one
+for hook in $HOOKS; do
+  if cmp $hook $hook.backup-$timestamp; then
+    rm $hook.backup-$timestamp
+  fi
+done
+
+# sanity check if there are any git repositories in here
+if ! ls *.git */*.git 2>/dev/null >&2 ; then
+  echo "No git repositories in $(pwd) ?!"
+  exit;
+fi
+
+echo "git repository base dir: $gitrepodir"
+
+for repo in *.git */*.git ; do
+  if test "$repo" = "sdk/glib.git"; then
+    echo "Skipping $repo"
+    continue
+  fi
+  echo "Updating hooks in $repo"
+  for hook in $HOOKS; do
+    # make sure target hook script actually exists
+    if ! test -e $hook ; then
+      echo "Hook '$hook' does not exist in $gitrepodir. Aborting.";
+      exit 1;
+    fi
+    # create new hook
+    rm -f $repo/hooks/$hook.new
+    pushd $repo/hooks >/dev/null
+    if [ -e "../../$hook" ] ; then
+      ln -s "../../$hook" $hook.new
+    elif [ -e "../../../$hook" ] ; then
+      ln -s "../../../$hook" $hook.new
+    else
+      echo "could not find hook script in parent directories ?!"
+      exit 1
+    fi
+    # put new hook in place atomically
+    #echo "installing $repo/hooks/$hook"
+    mv $hook.new $hook
+    # test it to make sure all is good
+    cat $hook >/dev/null
+    popd >/dev/null
+  done
+done
+
+echo "Done"

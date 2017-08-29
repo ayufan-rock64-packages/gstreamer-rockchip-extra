@@ -1,0 +1,5 @@
+gstreamer1.0-rockchip-extra (1.10-1) testing; urgency=medium
+
+  * First version
+
+ -- Jacob Chen <jacob2.chen@rock-chips.com>  Thu, 28 Aug 2017 12:00:56 +0000

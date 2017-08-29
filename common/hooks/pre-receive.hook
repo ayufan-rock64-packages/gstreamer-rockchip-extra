@@ -1,0 +1,190 @@
+#!/usr/bin/env python
+import sys
+import os
+import subprocess
+
+# This server-side pre-receive hook is to be put and activated in all modules
+# that depend on the common submodule.
+#
+# It will check whether any modifications to the common 'submodule file' has a
+# a valid commit SHA1 that exists in the common module.
+
+def commit_exists(sha1, gitdir):
+    """Returns True if the sha1 is a valid commit in the given
+    git directory"""
+    # FIXME: We're using 'git show' for the time being, but there's a small
+    # risk that there might be a valid SHA1 for a non-commit object.
+    env = os.environ.copy()
+    env["GIT_DIR"] = gitdir
+    sub = subprocess.Popen(["git", "show", sha1], env=env,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+    while True:
+        res = sub.poll()
+        if res != None:
+            return res == 0
+
+# location of the common git module
+COMMON_GIT_DIR = "/git/gstreamer/common.git"
+
+# checks whether the push contains a change to the common submodule,
+# and if so checks that it is changing it to a valid *EXISTING* common
+# commit
+def has_valid_common_change(old, new, ref):
+    # 1. Get the latest change to common (if there was any changes)
+    sub = subprocess.Popen(["git", "diff", "%s..%s" % (old, new, ), "--", "common"],
+                           stdout=subprocess.PIPE)
+    stdout, stderr = sub.communicate()
+
+    print "=> Checking for integrity of common submodule changes"
+
+    if stdout != "":
+        # Format of submodule special files
+        # Subproject commit <SHA1>
+
+        # we get a diff, therefore only grab the last line
+        lastline = stdout.strip().rsplit('\n',1)[-1]
+        if not lastline.startswith("+Subproject commit"):
+            # this is bad, it means the diff has changed to something completely
+            # different
+            return False
+        subsha1 = lastline.rsplit(' ', 1)[-1]
+        print "   Pack wants common to point to", subsha1
+        if not commit_exists(subsha1, COMMON_GIT_DIR):
+            print
+            print "   /!\\ Commit does not exist in common git module /!\\"
+            print "   /!\\ for ref", ref
+            print
+            print "   Attempting to push commits containing modifications to common"
+            print "   that have not been commited to the actuall common module."
+            print
+            print "   First push your changes to common/ before pushing the changes"
+            print "   to the module using it."
+            print
+            return False
+
+    print "   [OK]"
+    print
+    return True
+
+def commit_in_valid_branch(sha):
+    sub = subprocess.Popen(["git", "branch", "--contains", sha],
+                           stdout=subprocess.PIPE)
+    stdout, stderr = sub.communicate()
+    r = stdout.strip()
+    return r != ""
+
+# checks whether the push contains merge commits and if so, makes sure that
+# the merge is only between branches present on the repository.
+def contains_valid_merge(old, new, ref):
+    sub = subprocess.Popen(["git", "rev-list", "--parents", "%s..%s" % (old, new, )],
+                           stdout=subprocess.PIPE)
+    stdout, stderr = sub.communicate()
+
+    res = True
+
+    print "=> Checking for merge commits"
+
+    for line in stdout.split('\n'):
+        if res == False:
+            break
+        splits = line.strip().split()
+        if len(splits) > 2:
+            # the commit has more than one parent => it's a merge
+            commit = splits[0]
+            for parent in splits[1:]:
+                if not commit_in_valid_branch(parent):
+                    print
+                    print "    /!\\ Commit %s" % commit
+                    print "    /!\\ is a merge commit from/to a branch not"
+                    print "    /!\\ present on this repository"
+                    print
+                    print "    Make sure you are not attempting to push a merge"
+                    print "    from a 3rd party repository"
+                    print
+                    print "    Make sure you have properly rebased your commits against"
+                    print "    the current official branches"
+                    print
+                    res = False
+                    break
+
+    if res:
+            print "   [OK]"
+            print
+    return res
+
+# checks whether the first line of any commit message contains a marker
+# that indicates that it's work-in-progress that shouldn't be pushed
+def contains_wip_commits(old, new):
+    # Get the commit message header
+    sub = subprocess.Popen(["git", "log", "--format=%s", "%s..%s" % (old, new, )], stdout=subprocess.PIPE)
+    stdout, stderr = sub.communicate()
+    if stdout != "":
+        for line in stdout.strip().rsplit('\n',1):
+            if line.startswith("!"):
+                return True
+            if line.startswith("WIP:") or line.startswith("wip:"):
+                return True
+    return False
+
+pushvalid = True
+error_badcommon = False
+error_badcommit = False
+
+openbranches = ["1.2", "1.0", "master"]
+
+def branch_closed(ref):
+    # We only care about branches
+    if not ref.startswith("refs/heads/"):
+        return False
+
+    # Check if it's in the allowed branches
+    brname = ref.rsplit("/", 1)[-1].strip()
+    if brname in openbranches:
+        return False
+
+    # Else it's not allowed
+    return True
+
+for line in sys.stdin.readlines():
+    # ref is the ref to be modified
+    # old is the old commit it was pointing to
+    # new is the new commit it was pointing to
+    old, new, ref = line.split(' ', 2)
+
+    pushvalid = has_valid_common_change(old, new, ref)
+    if pushvalid == False:
+        break
+    if branch_closed(ref):
+        print ">>>> Attempting to push to", ref
+        print ">>>> BRANCH READ-ONLY OR FORBIDDEN"
+        print ">>>> PUSH DENIED"
+        print
+        pushvalid = False
+        break
+    pushvalid = contains_valid_merge(old, new, ref)
+    if pushvalid == False:
+        break
+    if contains_wip_commits(old, new):
+        error_badcommit = True
+        pushvalid = False
+        break
+
+if pushvalid:
+    print "   Incoming packet valid, proceeding to actual commit"
+    print
+    sys.exit(0)
+else:
+    if error_badcommit:
+        print "   Attempting to push commits with commit messages that start"
+        print "   with '!' or 'WIP:'. Such commit messages are reserved for"
+        print "   private branches and work in progress to prevent the commits"
+        print "   from accidentally being pushed to the main repository."
+    if error_badcommon:
+        print "   Attempting to push commits containing modifications to common"
+        print "   that have not been commited to the actuall common module."
+        print
+        print "   First push your changes to common/ before pushing the changes"
+        print "   to the module using it."
+    sys.exit(-1)
+
