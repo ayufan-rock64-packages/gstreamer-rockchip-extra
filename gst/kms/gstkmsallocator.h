@@ -30,7 +30,6 @@
 #include <gst/video/video.h>
 
 G_BEGIN_DECLS
-
 #define GST_TYPE_KMS_ALLOCATOR	\
    (gst_kms_allocator_get_type())
 #define GST_IS_KMS_ALLOCATOR(obj)				\
@@ -43,7 +42,6 @@ G_BEGIN_DECLS
    (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_KMS_ALLOCATOR, GstKMSAllocator))
 #define GST_KMS_ALLOCATOR_CLASS(klass)			\
    (G_TYPE_CHECK_CLASS_CAST ((klass), GST_TYPE_KMS_ALLOCATOR, GstKMSAllocatorClass))
-
 typedef struct _GstKMSAllocator GstKMSAllocator;
 typedef struct _GstKMSAllocatorClass GstKMSAllocatorClass;
 typedef struct _GstKMSAllocatorPrivate GstKMSAllocatorPrivate;
@@ -66,27 +64,26 @@ struct _GstKMSAllocator
   GstKMSAllocatorPrivate *priv;
 };
 
-struct _GstKMSAllocatorClass {
+struct _GstKMSAllocatorClass
+{
   GstAllocatorClass parent_class;
 };
 
-GType gst_kms_allocator_get_type (void) G_GNUC_CONST;
+GType
+gst_kms_allocator_get_type (void)
+    G_GNUC_CONST;
 
-gboolean gst_is_kms_memory (GstMemory *mem);
-guint32 gst_kms_memory_get_fb_id (GstMemory *mem);
+     gboolean gst_is_kms_memory (GstMemory * mem);
+     guint32 gst_kms_memory_get_fb_id (GstMemory * mem);
 
-GstAllocator* gst_kms_allocator_new (gint fd);
+     GstAllocator *gst_kms_allocator_new (gint fd);
 
-GstMemory*    gst_kms_allocator_bo_alloc (GstAllocator *allocator,
-					  GstVideoInfo *vinfo);
+     GstMemory *gst_kms_allocator_bo_alloc (GstAllocator * allocator,
+    GstVideoInfo * vinfo);
 
-GstKMSMemory* gst_kms_allocator_dmabuf_import (GstAllocator *allocator,
-					       gint *prime_fds,
-					       gint n_planes,
-					       gsize offsets[GST_VIDEO_MAX_PLANES],
-					       GstVideoInfo *vinfo);
+     GstKMSMemory *gst_kms_allocator_dmabuf_import (GstAllocator * allocator,
+    gint * prime_fds,
+    gint n_planes, gsize offsets[GST_VIDEO_MAX_PLANES], GstVideoInfo * vinfo);
 
 G_END_DECLS
-
-
 #endif /* __GST_KMS_ALLOCATOR_H__ */

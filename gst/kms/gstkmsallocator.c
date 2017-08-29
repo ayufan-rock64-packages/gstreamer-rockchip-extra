@@ -396,6 +396,9 @@ gst_kms_allocator_add_fb (GstKMSAllocator * alloc, GstKMSMemory * kmsmem,
     pitches[i] = GST_VIDEO_INFO_PLANE_STRIDE (vinfo, i);
     GST_DEBUG_OBJECT (alloc, "Create FB plane %i with stride %u and offset %u",
         i, pitches[i], offsets[i]);
+
+    if (w >= 3840)
+      pitches[i] *= 2;
   }
 
   ret = drmModeAddFB2 (alloc->priv->fd, w, h, fmt, bo_handles, pitches,

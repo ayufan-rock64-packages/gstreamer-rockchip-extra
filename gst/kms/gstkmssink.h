@@ -29,7 +29,6 @@
 #include <gst/video/gstvideosink.h>
 
 G_BEGIN_DECLS
-
 #define GST_TYPE_KMS_SINK \
   (gst_kms_sink_get_type())
 #define GST_KMS_SINK(obj) \
@@ -40,14 +39,14 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_KMS_SINK))
 #define GST_IS_KMS_SINK_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_KMS_SINK))
-
 typedef struct _GstKMSSink GstKMSSink;
 typedef struct _GstKMSSinkClass GstKMSSinkClass;
 
-struct _GstKMSSink {
+struct _GstKMSSink
+{
   GstVideoSink videosink;
 
-  /*< private >*/
+  /*< private > */
   gint fd;
   gint conn_id;
   gint crtc_id;
@@ -77,14 +76,18 @@ struct _GstKMSSink {
 
   GstPoll *poll;
   GstPollFD pollfd;
+
+  GstVideoRectangle save_rect;
 };
 
-struct _GstKMSSinkClass {
+struct _GstKMSSinkClass
+{
   GstVideoSinkClass parent_class;
 };
 
-GType gst_kms_sink_get_type (void) G_GNUC_CONST;
+GType
+gst_kms_sink_get_type (void)
+    G_GNUC_CONST;
 
 G_END_DECLS
-
 #endif /* __GST_KMS_SINK_H__ */

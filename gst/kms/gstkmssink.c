@@ -51,6 +51,7 @@
 #include <drm_fourcc.h>
 
 #include <string.h>
+#include <fcntl.h>
 
 #include "gstkmssink.h"
 #include "gstkmsutils.h"
@@ -60,15 +61,30 @@
 #define GST_PLUGIN_NAME "kmssink"
 #define GST_PLUGIN_DESC "Video sink using the Linux kernel mode setting API"
 
+#define DEBUG_FPS
+
 GST_DEBUG_CATEGORY_STATIC (gst_kms_sink_debug);
 GST_DEBUG_CATEGORY_STATIC (CAT_PERFORMANCE);
+
+static void gst_kms_sink_video_overlay_init (GstVideoOverlayInterface * iface);
+static void gst_kms_sink_navigation_init (GstNavigationInterface * iface);
+
+#ifdef DEBUG_FPS
+static guint32 g_frame_showed = 0;
+static GstClockTime g_start_time;
+#endif
+
 #define GST_CAT_DEFAULT gst_kms_sink_debug
 
-#define parent_class gst_kms_sink_parent_class
+#define gst_kms_sink_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstKMSSink, gst_kms_sink, GST_TYPE_VIDEO_SINK,
     GST_DEBUG_CATEGORY_INIT (GST_CAT_DEFAULT, GST_PLUGIN_NAME, 0,
         GST_PLUGIN_DESC);
-    GST_DEBUG_CATEGORY_GET (CAT_PERFORMANCE, "GST_PERFORMANCE"));
+    GST_DEBUG_CATEGORY_GET (CAT_PERFORMANCE, "GST_PERFORMANCE");
+    G_IMPLEMENT_INTERFACE (GST_TYPE_NAVIGATION,
+        gst_kms_sink_navigation_init);
+    G_IMPLEMENT_INTERFACE (GST_TYPE_VIDEO_OVERLAY,
+        gst_kms_sink_video_overlay_init););
 
 enum
 {
@@ -80,26 +96,6 @@ enum
 };
 
 static GParamSpec *g_properties[PROP_N] = { NULL, };
-
-static int
-kms_open (gchar ** driver)
-{
-  static const char *drivers[] = { "i915", "radeon", "nouveau", "vmwgfx",
-    "exynos", "amdgpu", "imx-drm", "rockchip", "atmel-hlcdc"
-  };
-  int i, fd = -1;
-
-  for (i = 0; i < G_N_ELEMENTS (drivers); i++) {
-    fd = drmOpen (drivers[i], NULL);
-    if (fd >= 0) {
-      if (driver)
-        *driver = g_strdup (drivers[i]);
-      break;
-    }
-  }
-
-  return fd;
-}
 
 static drmModePlane *
 find_plane_for_crtc (int fd, drmModeRes * res, drmModePlaneRes * pres,
@@ -506,10 +502,7 @@ gst_kms_sink_start (GstBaseSink * bsink)
   pres = NULL;
   plane = NULL;
 
-  if (self->devname)
-    self->fd = drmOpen (self->devname, NULL);
-  else
-    self->fd = kms_open (&self->devname);
+  self->fd = open ("/dev/dri/card0", 0x0002);
   if (self->fd < 0)
     goto open_failed;
 
@@ -1207,10 +1200,57 @@ error_map_src_buffer:
   }
 }
 
+static void
+kms_get_render_rectangle (GstKMSSink * kmssink, gint * x,
+    gint * y, gint * width, gint * height)
+{
+  if (kmssink->save_rect.w != 0 && kmssink->save_rect.h != 0) {
+    *width = kmssink->save_rect.w;
+    *height = kmssink->save_rect.h;
+    *x = kmssink->save_rect.x;
+    *y = kmssink->save_rect.y;
+  }
+}
+
+static void
+gst_kms_sink_set_render_rectangle (GstVideoOverlay * overlay,
+    gint x, gint y, gint width, gint height)
+{
+  GstKMSSink *kmssink = GST_KMS_SINK (overlay);
+
+  if (x >= 0 && y >= 0 && width > 0 && height > 0) {
+    kmssink->save_rect.w = width;
+    kmssink->save_rect.h = height;
+    kmssink->save_rect.x = x;
+    kmssink->save_rect.y = y;
+  }
+}
+
+static void
+gst_kms_sink_navigation_send_event (GstNavigation * navigation,
+    GstStructure * structure)
+{
+
+}
+
+static void
+gst_kms_sink_video_overlay_init (GstVideoOverlayInterface * iface)
+{
+  iface->set_render_rectangle = gst_kms_sink_set_render_rectangle;
+}
+
+static void
+gst_kms_sink_navigation_init (GstNavigationInterface * iface)
+{
+  iface->send_event = gst_kms_sink_navigation_send_event;
+}
+
 static GstFlowReturn
 gst_kms_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
 {
   gint ret;
+  gdouble average_fps;
+  gdouble time_elapsed;
   GstBuffer *buffer;
   guint32 fb_id;
   GstKMSSink *self;
@@ -1223,6 +1263,11 @@ gst_kms_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
   self = GST_KMS_SINK (vsink);
 
   res = GST_FLOW_ERROR;
+
+#ifdef DEBUG_FPS
+  if (g_frame_showed == 0)
+    g_start_time = gst_util_get_timestamp ();
+#endif
 
   buffer = gst_kms_sink_get_input_buffer (self, buf);
   if (!buffer)
@@ -1266,6 +1311,13 @@ gst_kms_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
     src.h = GST_VIDEO_INFO_HEIGHT (&self->vinfo);
   }
 
+  kms_get_render_rectangle (self, &result.x, &result.y, &result.w, &result.h);
+  gst_video_sink_center_rect (src, result, &result, TRUE);
+
+  /* handle hardware limition */
+  if (src.w >= 3840)
+    src.h /= 2;
+
   GST_TRACE_OBJECT (self,
       "drmModeSetPlane at (%i,%i) %ix%i sourcing at (%i,%i) %ix%i",
       result.x, result.y, result.w, result.h, src.x, src.y, src.w, src.h);
@@ -1286,6 +1338,17 @@ sync_frame:
   g_clear_pointer (&self->tmp_kmsmem, gst_memory_unref);
 
   res = GST_FLOW_OK;
+
+#ifdef DEBUG_FPS
+  if (++g_frame_showed == 60) {
+    GstClockTime g_end_time = gst_util_get_timestamp ();
+    time_elapsed = (gdouble) (g_end_time - g_start_time) / GST_SECOND;
+    average_fps = (gdouble) g_frame_showed / time_elapsed;
+
+    GST_INFO_OBJECT (self, "============> kmssink fps=%f\n", average_fps);
+    g_frame_showed = 0;
+  }
+#endif
 
 bail:
   gst_buffer_unref (buffer);
@@ -1390,6 +1453,11 @@ gst_kms_sink_init (GstKMSSink * sink)
   gst_poll_fd_init (&sink->pollfd);
   sink->poll = gst_poll_new (TRUE);
   gst_video_info_init (&sink->vinfo);
+
+  sink->save_rect.x = 0;
+  sink->save_rect.y = 0;
+  sink->save_rect.w = 0;
+  sink->save_rect.h = 0;
 }
 
 static void

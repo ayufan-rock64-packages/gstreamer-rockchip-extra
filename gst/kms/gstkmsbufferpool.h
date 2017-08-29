@@ -32,7 +32,6 @@
 #include "gstkmssink.h"
 
 G_BEGIN_DECLS
-
 /**
  * GST_BUFFER_POOL_OPTION_KMS_BUFFER:
  *
@@ -40,7 +39,6 @@ G_BEGIN_DECLS
  * buffers.
  */
 #define GST_BUFFER_POOL_OPTION_KMS_BUFFER "GstBufferPoolOptionKMSBuffer"
-
 /* video bufferpool */
 typedef struct _GstKMSBufferPool GstKMSBufferPool;
 typedef struct _GstKMSBufferPoolClass GstKMSBufferPoolClass;
@@ -66,10 +64,11 @@ struct _GstKMSBufferPoolClass
   GstVideoBufferPoolClass parent_class;
 };
 
-GType gst_kms_buffer_pool_get_type (void) G_GNUC_CONST;
+GType
+gst_kms_buffer_pool_get_type (void)
+    G_GNUC_CONST;
 
-GstBufferPool *gst_kms_buffer_pool_new (void);
+     GstBufferPool *gst_kms_buffer_pool_new (void);
 
 G_END_DECLS
-
 #endif /* __GST_KMS_BUFFER_POOL_H__ */
