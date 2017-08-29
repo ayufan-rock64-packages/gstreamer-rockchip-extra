@@ -1,6 +1,6 @@
 ## Status
 
-| Plugin       | Type  |  Comments  |
+| Elements       | Type  |  Comments  |
 | :----:  | :----:  | :----:  |
 | rkximagesink    | Video Render (sink) |   kmssink on X11, for overlay display |
 | kmssink        |   Video Render (sink)   |  Customized [kmssink](https://github.com/GStreamer/gst-plugins-bad/tree/master/sys/kms), for overlay display   |
