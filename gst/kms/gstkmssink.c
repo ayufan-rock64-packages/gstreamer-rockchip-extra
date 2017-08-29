@@ -1071,7 +1071,7 @@ gst_kms_sink_import_dmabuf (GstKMSSink * self, GstBuffer * inbuf,
       GST_VIDEO_INFO_PLANE_STRIDE (&self->vinfo, i) = meta->stride[i];
     }
   }
-
+  bzero (mems, sizeof (mems));
   /* Find and validate all memories */
   for (i = 0; i < n_planes; i++) {
     guint length;
