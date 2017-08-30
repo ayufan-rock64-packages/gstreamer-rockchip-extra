@@ -1,5 +1,5 @@
 if USE_RKV4L2
-V4l2_DIR=v4l2
+V4l2_DIR=rkv4l2
 else
 V4l2_DIR=
 endif

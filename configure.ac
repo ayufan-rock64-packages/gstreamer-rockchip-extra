@@ -408,7 +408,7 @@ gst-libs/gst/Makefile
 gst/Makefile
 gst/rkximage/Makefile
 gst/kms/Makefile
-gst/v4l2/Makefile
+gst/rkv4l2/Makefile
 common/Makefile
 common/m4/Makefile
 m4/Makefile

@@ -524,64 +524,6 @@ gst_v4l2_close (GstV4l2Object * v4l2object)
   return TRUE;
 }
 
-
-/******************************************************
- * gst_v4l2_get_norm()
- *   Get the norm of the current device
- * return value: TRUE on success, FALSE on error
- ******************************************************/
-gboolean
-gst_v4l2_get_norm (GstV4l2Object * v4l2object, v4l2_std_id * norm)
-{
-  GST_DEBUG_OBJECT (v4l2object->element, "getting norm");
-
-  if (!GST_V4L2_IS_OPEN (v4l2object))
-    return FALSE;
-
-  if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_G_STD, norm) < 0)
-    goto std_failed;
-
-  return TRUE;
-
-  /* ERRORS */
-std_failed:
-  {
-    GST_DEBUG ("Failed to get the current norm for device %s",
-        v4l2object->videodev);
-    return FALSE;
-  }
-}
-
-
-/******************************************************
- * gst_v4l2_set_norm()
- *   Set the norm of the current device
- * return value: TRUE on success, FALSE on error
- ******************************************************/
-gboolean
-gst_v4l2_set_norm (GstV4l2Object * v4l2object, v4l2_std_id norm)
-{
-  GST_DEBUG_OBJECT (v4l2object->element, "trying to set norm to "
-      "%" G_GINT64_MODIFIER "x", (guint64) norm);
-
-  if (!GST_V4L2_IS_OPEN (v4l2object))
-    return FALSE;
-
-  if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_S_STD, &norm) < 0)
-    goto std_failed;
-
-  return TRUE;
-
-  /* ERRORS */
-std_failed:
-  {
-    GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
-        (_("Failed to set norm for device '%s'."),
-            v4l2object->videodev), GST_ERROR_SYSTEM);
-    return FALSE;
-  }
-}
-
 /******************************************************
  * gst_v4l2_get_attribute():
  *   try to get the value of one specific attribute

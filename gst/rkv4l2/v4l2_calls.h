@@ -90,17 +90,12 @@
     return FALSE;						\
   }
 
-
 /* open/close the device */
 gboolean	gst_v4l2_open			(GstV4l2Object *v4l2object);
 gboolean	gst_v4l2_dup			(GstV4l2Object *v4l2object, GstV4l2Object *other);
 gboolean	gst_v4l2_close			(GstV4l2Object *v4l2object);
 
-/* norm/input/output */
-gboolean	gst_v4l2_get_norm		(GstV4l2Object *v4l2object,
-						 v4l2_std_id    *norm);
-gboolean	gst_v4l2_set_norm		(GstV4l2Object *v4l2object,
-						 v4l2_std_id     norm);
+/* input/output */
 gboolean        gst_v4l2_get_input              (GstV4l2Object * v4l2object,
                                                  gint * input);
 gboolean        gst_v4l2_set_input              (GstV4l2Object * v4l2object,
