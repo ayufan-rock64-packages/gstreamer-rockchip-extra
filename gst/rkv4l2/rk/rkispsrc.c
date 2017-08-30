@@ -117,7 +117,7 @@ gst_ispsrc_class_init (GstISPSrcClass * klass)
       0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, GST_TYPE_CAPS);
 
   gst_element_class_set_static_metadata (element_class,
-      "ISP Source", "Source/Video", "Reads frames from ISP", "");
+      "ISP Source", "Source/Video", "Reads frames from ISP", " ");
 
   gst_element_class_add_pad_template
       (element_class,

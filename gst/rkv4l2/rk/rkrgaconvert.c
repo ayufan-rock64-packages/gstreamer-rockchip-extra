@@ -1068,7 +1068,7 @@ gst_rga_convert_class_init (GstRGAConvertClass * klass)
 
   gst_element_class_set_static_metadata (element_class,
       "RGA Video Converter",
-      "Filter/Converter/Video/Scaler", "Transform streams via V4L2 API", "");
+      "Filter/Converter/Video/Scaler", "Transform streams via V4L2 API", " ");
 
   gobject_class->dispose = GST_DEBUG_FUNCPTR (gst_rga_convert_dispose);
   gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_rga_convert_finalize);
