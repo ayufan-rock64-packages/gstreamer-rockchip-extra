@@ -65,7 +65,9 @@ plugin_init (GstPlugin * plugin)
       NULL, paths, names, GST_PLUGIN_DEPENDENCY_FLAG_FILE_NAME_IS_PREFIX);
 
   if (!gst_element_register (plugin, "ispsrc", GST_RANK_PRIMARY,
-          GST_TYPE_ISPSRC)
+          GST_TYPE_ISPSRC) ||
+      !gst_element_register (plugin, "rgaconvert", GST_RANK_NONE,
+          GST_TYPE_RGACONVERT)
       )
     return FALSE;
 

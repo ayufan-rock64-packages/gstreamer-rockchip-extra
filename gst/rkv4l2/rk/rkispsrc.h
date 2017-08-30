@@ -40,7 +40,6 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_ISPSRC))
 #define GST_IS_ISPSRC_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_ISPSRC))
-
 typedef struct _GstISPSrc GstISPSrc;
 typedef struct _GstISPSrcClass GstISPSrcClass;
 

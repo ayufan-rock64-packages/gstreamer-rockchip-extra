@@ -16,6 +16,24 @@
 
 #define DEFAULT_PROP_DEVICE "/dev/video10"
 
+static GstStaticPadTemplate gst_rga_convert_sink_template =
+GST_STATIC_PAD_TEMPLATE ("sink",
+    GST_PAD_SINK,
+    GST_PAD_ALWAYS,
+    GST_STATIC_CAPS ("video/x-raw, "
+        "framerate = (fraction) [ 0, MAX ], "
+        "width = (int) [ 1, MAX ], " "height = (int) [ 1, MAX ]")
+    );
+
+static GstStaticPadTemplate gst_rga_convert_src_template =
+GST_STATIC_PAD_TEMPLATE ("src",
+    GST_PAD_SRC,
+    GST_PAD_ALWAYS,
+    GST_STATIC_CAPS ("video/x-raw, "
+        "framerate = (fraction) [ 0, MAX ], "
+        "width = (int) [ 1, MAX ], " "height = (int) [ 1, MAX ]")
+    );
+
 GST_DEBUG_CATEGORY_STATIC (gst_rga_convert_debug);
 #define GST_CAT_DEFAULT gst_rga_convert_debug
 
@@ -24,13 +42,6 @@ enum
   PROP_0,
   V4L2_STD_OBJECT_PROPS
 };
-
-typedef struct
-{
-  gchar *device;
-  GstCaps *sink_caps;
-  GstCaps *src_caps;
-} GstRGAConvertCData;
 
 #define gst_rga_convert_parent_class parent_class
 G_DEFINE_ABSTRACT_TYPE (GstRGAConvert, gst_rga_convert,
@@ -1028,28 +1039,23 @@ gst_rga_convert_finalize (GObject * object)
 static void
 gst_rga_convert_init (GstRGAConvert * self)
 {
-  /* V4L2 object are created in subinstance_init */
-  /* enable QoS */
-  gst_base_transform_set_qos_enabled (GST_BASE_TRANSFORM (self), TRUE);
-}
+  // GstRGAConvertClass *klass = GST_RGA_CONVERT_CLASS (g_class);
 
-static void
-gst_rga_convert_subinstance_init (GTypeInstance * instance, gpointer g_class)
-{
-  GstRGAConvertClass *klass = GST_RGA_CONVERT_CLASS (g_class);
-  GstRGAConvert *self = GST_RGA_CONVERT (instance);
-
-  self->v4l2output = gst_v4l2_object_new (GST_ELEMENT (self),
-      V4L2_BUF_TYPE_VIDEO_OUTPUT, klass->default_device,
-      gst_v4l2_get_output, gst_v4l2_set_output, NULL);
+  // self->v4l2output = gst_v4l2_object_new (GST_ELEMENT (self),
+  //     V4L2_BUF_TYPE_VIDEO_OUTPUT, klass->default_device,
+  // gst_v4l2_get_output, gst_v4l2_set_output, NULL);
   self->v4l2output->no_initial_format = TRUE;
   self->v4l2output->keep_aspect = FALSE;
 
-  self->v4l2capture = gst_v4l2_object_new (GST_ELEMENT (self),
-      V4L2_BUF_TYPE_VIDEO_CAPTURE, klass->default_device,
-      gst_v4l2_get_input, gst_v4l2_set_input, NULL);
+  // self->v4l2capture = gst_v4l2_object_new (GST_ELEMENT (self),
+  //     V4L2_BUF_TYPE_VIDEO_CAPTURE, klass->default_device,
+  // gst_v4l2_get_input, gst_v4l2_set_input, NULL);
   self->v4l2capture->no_initial_format = TRUE;
   self->v4l2output->keep_aspect = FALSE;
+
+  /* V4L2 object are created in subinstance_init */
+  /* enable QoS */
+  gst_base_transform_set_qos_enabled (GST_BASE_TRANSFORM (self), TRUE);
 }
 
 static void
@@ -1062,6 +1068,12 @@ gst_rga_convert_class_init (GstRGAConvertClass * klass)
   element_class = (GstElementClass *) klass;
   gobject_class = (GObjectClass *) klass;
   base_transform_class = (GstBaseTransformClass *) klass;
+
+  gst_element_class_add_pad_template (element_class,
+      gst_static_pad_template_get (&gst_rga_convert_src_template));
+
+  gst_element_class_add_pad_template (element_class,
+      gst_static_pad_template_get (&gst_rga_convert_sink_template));
 
   GST_DEBUG_CATEGORY_INIT (gst_rga_convert_debug, "rgaconvert", 0,
       "V4L2 Converter(Rockchip)");
@@ -1101,71 +1113,4 @@ gst_rga_convert_class_init (GstRGAConvertClass * klass)
       GST_DEBUG_FUNCPTR (gst_rga_convert_change_state);
 
   gst_v4l2_object_install_m2m_properties_helper (gobject_class);
-}
-
-static void
-gst_rga_convert_subclass_init (gpointer g_class, gpointer data)
-{
-  GstRGAConvertClass *klass = GST_RGA_CONVERT_CLASS (g_class);
-  GstElementClass *element_class = GST_ELEMENT_CLASS (g_class);
-  GstRGAConvertCData *cdata = data;
-
-  klass->default_device = cdata->device;
-
-  /* Note: gst_pad_template_new() take the floating ref from the caps */
-  gst_element_class_add_pad_template (element_class,
-      gst_pad_template_new ("sink", GST_PAD_SINK, GST_PAD_ALWAYS,
-          cdata->sink_caps));
-  gst_element_class_add_pad_template (element_class,
-      gst_pad_template_new ("src", GST_PAD_SRC, GST_PAD_ALWAYS,
-          cdata->src_caps));
-
-  g_free (cdata);
-}
-
-/* Probing functions */
-gboolean
-gst_v4l2_is_transform (GstCaps * sink_caps, GstCaps * src_caps)
-{
-  gboolean ret = FALSE;
-
-  if (gst_caps_is_subset (sink_caps, gst_v4l2_object_get_raw_caps ())
-      && gst_caps_is_subset (src_caps, gst_v4l2_object_get_raw_caps ()))
-    ret = TRUE;
-
-  return ret;
-}
-
-gboolean
-gst_rga_convert_register (GstPlugin * plugin, const gchar * basename,
-    const gchar * device_path, GstCaps * sink_caps, GstCaps * src_caps)
-{
-  GTypeQuery type_query;
-  GTypeInfo type_info = { 0, };
-  GType type, subtype;
-  gchar *type_name;
-  GstRGAConvertCData *cdata;
-
-  cdata = g_new0 (GstRGAConvertCData, 1);
-  cdata->device = g_strdup (device_path);
-  cdata->sink_caps = gst_caps_ref (sink_caps);
-  cdata->src_caps = gst_caps_ref (src_caps);
-
-  type = gst_rga_convert_get_type ();
-  g_type_query (type, &type_query);
-  memset (&type_info, 0, sizeof (type_info));
-  type_info.class_size = type_query.class_size;
-  type_info.instance_size = type_query.instance_size;
-  type_info.class_init = gst_rga_convert_subclass_init;
-  type_info.class_data = cdata;
-  type_info.instance_init = gst_rga_convert_subinstance_init;
-
-  type_name = g_strdup_printf ("rgaconvert");
-  subtype = g_type_register_static (type, type_name, &type_info, 0);
-
-  gst_element_register (plugin, type_name, GST_RANK_NONE, subtype);
-
-  g_free (type_name);
-
-  return TRUE;
 }
