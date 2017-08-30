@@ -33,20 +33,10 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#ifdef __sun
-/* Needed on older Solaris Nevada builds (72 at least) */
-#include <stropts.h>
-#include <sys/ioccom.h>
-#endif
 #include "v4l2_calls.h"
-#include "gstv4l2tuner.h"
-#if 0
-#include "gstv4l2xoverlay.h"
-#endif
 #include "gstv4l2colorbalance.h"
 
 #include "gstv4l2src.h"
-#include "gstv4l2sink.h"
 
 #include "gst/gst-i18n-plugin.h"
 
@@ -138,128 +128,6 @@ gst_v4l2_fill_lists (GstV4l2Object * v4l2object)
 
   GST_DEBUG_OBJECT (e, "getting enumerations");
   GST_V4L2_CHECK_OPEN (v4l2object);
-
-  GST_DEBUG_OBJECT (e, "  channels");
-  /* and now, the channels */
-  for (n = 0;; n++) {
-    struct v4l2_input input;
-    GstV4l2TunerChannel *v4l2channel;
-    GstTunerChannel *channel;
-
-    memset (&input, 0, sizeof (input));
-
-    input.index = n;
-    if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_ENUMINPUT, &input) < 0) {
-      if (errno == EINVAL || errno == ENOTTY)
-        break;                  /* end of enumeration */
-      else {
-        GST_ELEMENT_ERROR (e, RESOURCE, SETTINGS,
-            (_("Failed to query attributes of input %d in device %s"),
-                n, v4l2object->videodev),
-            ("Failed to get %d in input enumeration for %s. (%d - %s)",
-                n, v4l2object->videodev, errno, strerror (errno)));
-        return FALSE;
-      }
-    }
-
-    GST_LOG_OBJECT (e, "   index:     %d", input.index);
-    GST_LOG_OBJECT (e, "   name:      '%s'", input.name);
-    GST_LOG_OBJECT (e, "   type:      %08x", input.type);
-    GST_LOG_OBJECT (e, "   audioset:  %08x", input.audioset);
-    GST_LOG_OBJECT (e, "   std:       %016" G_GINT64_MODIFIER "x",
-        (guint64) input.std);
-    GST_LOG_OBJECT (e, "   status:    %08x", input.status);
-
-    v4l2channel = g_object_new (GST_TYPE_V4L2_TUNER_CHANNEL, NULL);
-    channel = GST_TUNER_CHANNEL (v4l2channel);
-    channel->label = g_strdup ((const gchar *) input.name);
-    channel->flags = GST_TUNER_CHANNEL_INPUT;
-    v4l2channel->index = n;
-
-    if (input.type == V4L2_INPUT_TYPE_TUNER) {
-      struct v4l2_tuner vtun;
-
-      v4l2channel->tuner = input.tuner;
-      channel->flags |= GST_TUNER_CHANNEL_FREQUENCY;
-
-      vtun.index = input.tuner;
-      if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_G_TUNER, &vtun) < 0) {
-        GST_ELEMENT_ERROR (e, RESOURCE, SETTINGS,
-            (_("Failed to get setting of tuner %d on device '%s'."),
-                input.tuner, v4l2object->videodev), GST_ERROR_SYSTEM);
-        g_object_unref (G_OBJECT (channel));
-        return FALSE;
-      }
-
-      channel->freq_multiplicator =
-          62.5 * ((vtun.capability & V4L2_TUNER_CAP_LOW) ? 1 : 1000);
-      channel->min_frequency = vtun.rangelow * channel->freq_multiplicator;
-      channel->max_frequency = vtun.rangehigh * channel->freq_multiplicator;
-      channel->min_signal = 0;
-      channel->max_signal = 0xffff;
-    }
-    if (input.audioset) {
-      /* we take the first. We don't care for
-       * the others for now */
-      while (!(input.audioset & (1 << v4l2channel->audio)))
-        v4l2channel->audio++;
-      channel->flags |= GST_TUNER_CHANNEL_AUDIO;
-    }
-
-    v4l2object->channels =
-        g_list_prepend (v4l2object->channels, (gpointer) channel);
-  }
-  v4l2object->channels = g_list_reverse (v4l2object->channels);
-
-  GST_DEBUG_OBJECT (e, "  norms");
-  /* norms... */
-  for (n = 0;; n++) {
-    struct v4l2_standard standard = { 0, };
-    GstV4l2TunerNorm *v4l2norm;
-
-    GstTunerNorm *norm;
-
-    /* fill in defaults */
-    standard.frameperiod.numerator = 1;
-    standard.frameperiod.denominator = 0;
-    standard.index = n;
-
-    if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_ENUMSTD, &standard) < 0) {
-      if (errno == EINVAL || errno == ENOTTY)
-        break;                  /* end of enumeration */
-#ifdef ENODATA
-      else if (errno == ENODATA)
-        break;                  /* end of enumeration, as of Linux 3.7-rc1 */
-#endif
-      else {
-        GST_ELEMENT_ERROR (e, RESOURCE, SETTINGS,
-            (_("Failed to query norm on device '%s'."),
-                v4l2object->videodev),
-            ("Failed to get attributes for norm %d on devide '%s'. (%d - %s)",
-                n, v4l2object->videodev, errno, strerror (errno)));
-        return FALSE;
-      }
-    }
-
-    GST_DEBUG_OBJECT (e, "    '%s', fps: %d / %d",
-        standard.name, standard.frameperiod.denominator,
-        standard.frameperiod.numerator);
-
-    v4l2norm = g_object_new (GST_TYPE_V4L2_TUNER_NORM, NULL);
-    norm = GST_TUNER_NORM (v4l2norm);
-    norm->label = g_strdup ((const gchar *) standard.name);
-    gst_value_set_fraction (&norm->framerate,
-        standard.frameperiod.denominator, standard.frameperiod.numerator);
-    v4l2norm->index = standard.id;
-
-    GST_DEBUG_OBJECT (v4l2object->element, "index=%08x, label=%s",
-        (unsigned int) v4l2norm->index, norm->label);
-
-    v4l2object->norms = g_list_prepend (v4l2object->norms, (gpointer) norm);
-  }
-  v4l2object->norms = g_list_reverse (v4l2object->norms);
-
-  GST_DEBUG_OBJECT (e, "  controls+menus");
 
   /* and lastly, controls+menus (if appropriate) */
   next = V4L2_CTRL_FLAG_NEXT_CTRL;
@@ -396,37 +264,6 @@ gst_v4l2_fill_lists (GstV4l2Object * v4l2object)
     channel->label = g_strdup ((const gchar *) control.name);
     v4l2channel->id = n;
 
-#if 0
-    /* FIXME: it will be need just when handling private controls
-     *(currently none of base controls are of this type) */
-    if (control.type == V4L2_CTRL_TYPE_MENU) {
-      struct v4l2_querymenu menu, *mptr;
-
-      int i;
-
-      menu.id = n;
-      for (i = 0;; i++) {
-        menu.index = i;
-        if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_QUERYMENU, &menu) < 0) {
-          if (errno == EINVAL)
-            break;              /* end of enumeration */
-          else {
-            GST_ELEMENT_ERROR (e, RESOURCE, SETTINGS,
-                (_("Failed getting controls attributes on device '%s'."),
-                    v4l2object->videodev),
-                ("Failed to get %d in menu enumeration for %s. (%d - %s)",
-                    n, v4l2object->videodev, errno, strerror (errno)));
-            return FALSE;
-          }
-        }
-        mptr = g_malloc (sizeof (menu));
-        memcpy (mptr, &menu, sizeof (menu));
-        menus = g_list_append (menus, mptr);
-      }
-    }
-    v4l2object->menus = g_list_append (v4l2object->menus, menus);
-#endif
-
     switch (control.type) {
       case V4L2_CTRL_TYPE_INTEGER:
         channel->min_value = control.minimum;
@@ -461,14 +298,6 @@ static void
 gst_v4l2_empty_lists (GstV4l2Object * v4l2object)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "deleting enumerations");
-
-  g_list_foreach (v4l2object->channels, (GFunc) g_object_unref, NULL);
-  g_list_free (v4l2object->channels);
-  v4l2object->channels = NULL;
-
-  g_list_foreach (v4l2object->norms, (GFunc) g_object_unref, NULL);
-  g_list_free (v4l2object->norms);
-  v4l2object->norms = NULL;
 
   g_list_foreach (v4l2object->colors, (GFunc) g_object_unref, NULL);
   g_list_free (v4l2object->colors);
@@ -564,11 +393,6 @@ gst_v4l2_open (GstV4l2Object * v4l2object)
               V4L2_CAP_VIDEO_CAPTURE_MPLANE)))
     goto not_capture;
 
-  if (GST_IS_V4L2SINK (v4l2object->element) &&
-      !(v4l2object->device_caps & (V4L2_CAP_VIDEO_OUTPUT |
-              V4L2_CAP_VIDEO_OUTPUT_MPLANE)))
-    goto not_output;
-
   gst_v4l2_adjust_buf_type (v4l2object);
 
   /* create enumerations, posts errors. */
@@ -617,22 +441,6 @@ not_capture:
   {
     GST_ELEMENT_ERROR (v4l2object->element, RESOURCE, NOT_FOUND,
         (_("Device '%s' is not a capture device."),
-            v4l2object->videodev),
-        ("Capabilities: 0x%x", v4l2object->device_caps));
-    goto error;
-  }
-not_output:
-  {
-    GST_ELEMENT_ERROR (v4l2object->element, RESOURCE, NOT_FOUND,
-        (_("Device '%s' is not a output device."),
-            v4l2object->videodev),
-        ("Capabilities: 0x%x", v4l2object->device_caps));
-    goto error;
-  }
-not_m2m:
-  {
-    GST_ELEMENT_ERROR (v4l2object->element, RESOURCE, NOT_FOUND,
-        (_("Device '%s' is not a M2M device."),
             v4l2object->videodev),
         ("Capabilities: 0x%x", v4l2object->device_caps));
     goto error;
@@ -769,120 +577,6 @@ std_failed:
   {
     GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
         (_("Failed to set norm for device '%s'."),
-            v4l2object->videodev), GST_ERROR_SYSTEM);
-    return FALSE;
-  }
-}
-
-/******************************************************
- * gst_v4l2_get_frequency():
- *   get the current frequency
- * return value: TRUE on success, FALSE on error
- ******************************************************/
-gboolean
-gst_v4l2_get_frequency (GstV4l2Object * v4l2object,
-    gint tunernum, gulong * frequency)
-{
-  struct v4l2_frequency freq = { 0, };
-
-  GstTunerChannel *channel;
-
-  GST_DEBUG_OBJECT (v4l2object->element, "getting current tuner frequency");
-
-  if (!GST_V4L2_IS_OPEN (v4l2object))
-    return FALSE;
-
-  channel = gst_tuner_get_channel (GST_TUNER (v4l2object->element));
-
-  freq.tuner = tunernum;
-  if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_G_FREQUENCY, &freq) < 0)
-    goto freq_failed;
-
-  *frequency = freq.frequency * channel->freq_multiplicator;
-
-  return TRUE;
-
-  /* ERRORS */
-freq_failed:
-  {
-    GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
-        (_("Failed to get current tuner frequency for device '%s'."),
-            v4l2object->videodev), GST_ERROR_SYSTEM);
-    return FALSE;
-  }
-}
-
-
-/******************************************************
- * gst_v4l2_set_frequency():
- *   set frequency
- * return value: TRUE on success, FALSE on error
- ******************************************************/
-gboolean
-gst_v4l2_set_frequency (GstV4l2Object * v4l2object,
-    gint tunernum, gulong frequency)
-{
-  struct v4l2_frequency freq = { 0, };
-
-  GstTunerChannel *channel;
-
-  GST_DEBUG_OBJECT (v4l2object->element,
-      "setting current tuner frequency to %lu", frequency);
-
-  if (!GST_V4L2_IS_OPEN (v4l2object))
-    return FALSE;
-
-  channel = gst_tuner_get_channel (GST_TUNER (v4l2object->element));
-
-  freq.tuner = tunernum;
-  /* fill in type - ignore error */
-  (void) v4l2_ioctl (v4l2object->video_fd, VIDIOC_G_FREQUENCY, &freq);
-  freq.frequency = frequency / channel->freq_multiplicator;
-
-  if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_S_FREQUENCY, &freq) < 0)
-    goto freq_failed;
-
-  return TRUE;
-
-  /* ERRORS */
-freq_failed:
-  {
-    GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
-        (_("Failed to set current tuner frequency for device '%s' to %lu Hz."),
-            v4l2object->videodev, frequency), GST_ERROR_SYSTEM);
-    return FALSE;
-  }
-}
-
-/******************************************************
- * gst_v4l2_signal_strength():
- *   get the strength of the signal on the current input
- * return value: TRUE on success, FALSE on error
- ******************************************************/
-gboolean
-gst_v4l2_signal_strength (GstV4l2Object * v4l2object,
-    gint tunernum, gulong * signal_strength)
-{
-  struct v4l2_tuner tuner = { 0, };
-
-  GST_DEBUG_OBJECT (v4l2object->element, "trying to get signal strength");
-
-  if (!GST_V4L2_IS_OPEN (v4l2object))
-    return FALSE;
-
-  tuner.index = tunernum;
-  if (v4l2_ioctl (v4l2object->video_fd, VIDIOC_G_TUNER, &tuner) < 0)
-    goto tuner_failed;
-
-  *signal_strength = tuner.signal;
-
-  return TRUE;
-
-  /* ERRORS */
-tuner_failed:
-  {
-    GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
-        (_("Failed to get signal strength for device '%s'."),
             v4l2object->videodev), GST_ERROR_SYSTEM);
     return FALSE;
   }

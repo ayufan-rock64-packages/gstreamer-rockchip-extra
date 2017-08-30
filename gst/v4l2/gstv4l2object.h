@@ -147,14 +147,10 @@ struct _GstV4l2Object {
   GstCaps *probed_caps;
 
   GList *colors;
-  GList *norms;
-  GList *channels;
+  //GList *channels;
   GData *controls;
 
   /* properties */
-  v4l2_std_id tv_norm;
-  gchar *channel;
-  gulong frequency;
   GstStructure *extra_controls;
   gboolean keep_aspect;
   GValue *par;

@@ -44,8 +44,6 @@
 
 #include "gstv4l2object.h"
 #include "gstv4l2src.h"
-#include "gstv4l2sink.h"
-#include "gstv4l2radio.h"
 #include "gstv4l2deviceprovider.h"
 #include "gstv4l2transform.h"
 
@@ -224,10 +222,6 @@ plugin_init (GstPlugin * plugin)
 
   if (!gst_element_register (plugin, "v4l2src", GST_RANK_PRIMARY,
           GST_TYPE_V4L2SRC) ||
-      !gst_element_register (plugin, "v4l2sink", GST_RANK_NONE,
-          GST_TYPE_V4L2SINK) ||
-      !gst_element_register (plugin, "v4l2radio", GST_RANK_NONE,
-          GST_TYPE_V4L2RADIO) ||
       !gst_device_provider_register (plugin, "v4l2deviceprovider",
           GST_RANK_PRIMARY, GST_TYPE_V4L2_DEVICE_PROVIDER)
       /* etc. */

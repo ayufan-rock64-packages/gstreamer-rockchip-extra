@@ -6,17 +6,11 @@ libgstrkv4l2_la_SOURCES = gstv4l2.c \
 				gstv4l2deviceprovider.c \
 				gstv4l2object.c \
 				gstv4l2bufferpool.c \
-				gstv4l2sink.c \
 				gstv4l2src.c \
-				gstv4l2radio.c \
-				gstv4l2tuner.c \
 				gstv4l2transform.c \
 				gstv4l2vidorient.c \
 				v4l2_calls.c \
-				v4l2-utils.c \
-				tuner.c \
-				tunerchannel.c \
-				tunernorm.c
+				v4l2-utils.c
 
 libgstrkv4l2_la_CFLAGS =   $(GST_PLUGINS_BASE_CFLAGS) \
 				 $(GST_BASE_CFLAGS) \
@@ -42,15 +36,9 @@ noinst_HEADERS = \
 	gstv4l2colorbalance.h \
 	gstv4l2deviceprovider.h \
 	gstv4l2object.h \
-	gstv4l2sink.h \
 	gstv4l2src.h \
-	gstv4l2radio.h \
-	gstv4l2tuner.h \
 	gstv4l2transform.h \
 	gstv4l2vidorient.h \
 	v4l2_calls.h \
-	v4l2-utils.h \
-	tuner.h \
-	tunerchannel.h \
-	tunernorm.h
+	v4l2-utils.h
 

@@ -110,17 +110,6 @@ gboolean	gst_v4l2_get_output		(GstV4l2Object *v4l2object,
 gboolean	gst_v4l2_set_output		(GstV4l2Object *v4l2object,
 						 gint            output);
 
-/* frequency control */
-gboolean	gst_v4l2_get_frequency		(GstV4l2Object *v4l2object,
-						 gint            tunernum,
-						 gulong         *frequency);
-gboolean	gst_v4l2_set_frequency		(GstV4l2Object *v4l2object,
-						 gint            tunernum,
-					 	 gulong          frequency);
-gboolean	gst_v4l2_signal_strength	(GstV4l2Object *v4l2object,
-						 gint            tunernum,
-						 gulong         *signal);
-
 /* attribute control */
 gboolean	gst_v4l2_get_attribute		(GstV4l2Object *v4l2object,
 						 int             attribute,
