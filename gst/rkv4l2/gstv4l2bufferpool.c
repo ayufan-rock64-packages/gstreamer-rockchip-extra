@@ -1550,8 +1550,8 @@ gst_v4l2_buffer_pool_class_init (GstV4l2BufferPoolClass * klass)
   bufferpool_class->flush_start = gst_v4l2_buffer_pool_flush_start;
   bufferpool_class->flush_stop = gst_v4l2_buffer_pool_flush_stop;
 
-  GST_DEBUG_CATEGORY_INIT (v4l2bufferpool_debug, "v4l2bufferpool", 0,
-      "V4L2 Buffer Pool");
+  GST_DEBUG_CATEGORY_INIT (v4l2bufferpool_debug, "rk_v4l2bufferpool", 0,
+      "V4L2 Buffer Pool(Rockchip)");
   GST_DEBUG_CATEGORY_GET (CAT_PERFORMANCE, "GST_PERFORMANCE");
 }
 

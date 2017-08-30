@@ -186,7 +186,8 @@ gst_v4l2src_class_init (GstV4l2SrcClass * klass)
 
   klass->v4l2_class_devices = NULL;
 
-  GST_DEBUG_CATEGORY_INIT (v4l2src_debug, "v4l2src", 0, "V4L2 source element");
+  GST_DEBUG_CATEGORY_INIT (v4l2src_debug, "rk_v4l2src", 0,
+      "V4L2 source element(Rockchip)");
 }
 
 static void

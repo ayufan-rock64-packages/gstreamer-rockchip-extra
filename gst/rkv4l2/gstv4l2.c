@@ -213,16 +213,17 @@ plugin_init (GstPlugin * plugin)
   const gchar *paths[] = { "/dev", "/dev/v4l2", NULL };
   const gchar *names[] = { "video", NULL };
 
-  GST_DEBUG_CATEGORY_INIT (v4l2_debug, "v4l2", 0, "V4L2 API calls");
+  GST_DEBUG_CATEGORY_INIT (v4l2_debug, "rk_v4l2", 0,
+      "V4L2 API calls(Rockchip)");
 
   /* Add some depedency, so the dynamic features get updated upon changes in
    * /dev/video* */
   gst_plugin_add_dependency (plugin,
       NULL, paths, names, GST_PLUGIN_DEPENDENCY_FLAG_FILE_NAME_IS_PREFIX);
 
-  if (!gst_element_register (plugin, "v4l2src", GST_RANK_PRIMARY,
+  if (!gst_element_register (plugin, "rk_v4l2src", GST_RANK_PRIMARY,
           GST_TYPE_V4L2SRC) ||
-      !gst_device_provider_register (plugin, "v4l2deviceprovider",
+      !gst_device_provider_register (plugin, "rk_v4l2deviceprovider",
           GST_RANK_PRIMARY, GST_TYPE_V4L2_DEVICE_PROVIDER)
       /* etc. */
 #ifdef GST_V4L2_ENABLE_PROBE
@@ -241,6 +242,6 @@ plugin_init (GstPlugin * plugin)
 
 GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
-    video4linux2,
-    "elements for Video 4 Linux",
+    rockchip_video4linux2,
+    "elements for Video 4 Linux(Rockchip)",
     plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)

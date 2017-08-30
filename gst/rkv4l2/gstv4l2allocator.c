@@ -448,8 +448,8 @@ gst_v4l2_allocator_class_init (GstV4l2AllocatorClass * klass)
       G_TYPE_FROM_CLASS (object_class), G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
       G_TYPE_NONE, 0);
 
-  GST_DEBUG_CATEGORY_INIT (v4l2allocator_debug, "v4l2allocator", 0,
-      "V4L2 Allocator");
+  GST_DEBUG_CATEGORY_INIT (v4l2allocator_debug, "rk_v4l2allocator", 0,
+      "V4L2 Allocator(Rockchip)");
 }
 
 static void
