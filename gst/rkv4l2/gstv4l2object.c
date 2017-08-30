@@ -209,7 +209,7 @@ gst_v4l2_device_get_type (void)
     };
 
     v4l2_device_type =
-        g_flags_register_static ("GstV4l2DeviceTypeFlags", values);
+        g_flags_register_static ("GstRKV4l2DeviceTypeFlags", values);
   }
 
   return v4l2_device_type;
@@ -232,7 +232,7 @@ gst_v4l2_io_mode_get_type (void)
 
       {0, NULL, NULL}
     };
-    v4l2_io_mode = g_enum_register_static ("GstV4l2IOMode", io_modes);
+    v4l2_io_mode = g_enum_register_static ("GstRKV4l2IOMode", io_modes);
   }
   return v4l2_io_mode;
 }

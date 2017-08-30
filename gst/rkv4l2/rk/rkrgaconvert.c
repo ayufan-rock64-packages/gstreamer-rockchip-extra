@@ -1,24 +1,3 @@
-/*
- * Copyright (C) 2014 Collabora Ltd.
- *     Author: Nicolas Dufresne <nicolas.dufresne@collabora.co.uk>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -29,7 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "gstv4l2transform.h"
+#include "rkrgaconvert.h"
 #include "v4l2_calls.h"
 
 #include <string.h>
@@ -37,12 +16,8 @@
 
 #define DEFAULT_PROP_DEVICE "/dev/video10"
 
-#define V4L2_TRANSFORM_QUARK \
-	g_quark_from_static_string("gst-v4l2-transform-info")
-
-GST_DEBUG_CATEGORY_STATIC (gst_v4l2_transform_debug);
-#define GST_CAT_DEFAULT gst_v4l2_transform_debug
-
+GST_DEBUG_CATEGORY_STATIC (gst_rga_convert_debug);
+#define GST_CAT_DEFAULT gst_rga_convert_debug
 
 enum
 {
@@ -55,17 +30,17 @@ typedef struct
   gchar *device;
   GstCaps *sink_caps;
   GstCaps *src_caps;
-} GstV4l2TransformCData;
+} GstRGAConvertCData;
 
-#define gst_v4l2_transform_parent_class parent_class
-G_DEFINE_ABSTRACT_TYPE (GstV4l2Transform, gst_v4l2_transform,
+#define gst_rga_convert_parent_class parent_class
+G_DEFINE_ABSTRACT_TYPE (GstRGAConvert, gst_rga_convert,
     GST_TYPE_BASE_TRANSFORM);
 
 static void
-gst_v4l2_transform_set_property (GObject * object,
+gst_rga_convert_set_property (GObject * object,
     guint prop_id, const GValue * value, GParamSpec * pspec)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (object);
+  GstRGAConvert *self = GST_RGA_CONVERT (object);
 
   switch (prop_id) {
     case PROP_OUTPUT_IO_MODE:
@@ -88,10 +63,10 @@ gst_v4l2_transform_set_property (GObject * object,
 }
 
 static void
-gst_v4l2_transform_get_property (GObject * object,
+gst_rga_convert_get_property (GObject * object,
     guint prop_id, GValue * value, GParamSpec * pspec)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (object);
+  GstRGAConvert *self = GST_RGA_CONVERT (object);
 
   switch (prop_id) {
     case PROP_OUTPUT_IO_MODE:
@@ -114,7 +89,7 @@ gst_v4l2_transform_get_property (GObject * object,
 }
 
 static gboolean
-gst_v4l2_transform_open (GstV4l2Transform * self)
+gst_rga_convert_open (GstRGAConvert * self)
 {
   GST_DEBUG_OBJECT (self, "Opening");
 
@@ -165,7 +140,7 @@ failure:
 }
 
 static void
-gst_v4l2_transform_close (GstV4l2Transform * self)
+gst_rga_convert_close (GstRGAConvert * self)
 {
   GST_DEBUG_OBJECT (self, "Closing");
 
@@ -177,9 +152,9 @@ gst_v4l2_transform_close (GstV4l2Transform * self)
 }
 
 static gboolean
-gst_v4l2_transform_stop (GstBaseTransform * trans)
+gst_rga_convert_stop (GstBaseTransform * trans)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
 
   GST_DEBUG_OBJECT (self, "Stop");
 
@@ -192,11 +167,11 @@ gst_v4l2_transform_stop (GstBaseTransform * trans)
 }
 
 static gboolean
-gst_v4l2_transform_set_caps (GstBaseTransform * trans, GstCaps * incaps,
+gst_rga_convert_set_caps (GstBaseTransform * trans, GstCaps * incaps,
     GstCaps * outcaps)
 {
   GstV4l2Error error = GST_V4L2_ERROR_INIT;
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
 
   if (self->incaps && self->outcaps) {
     if (gst_caps_is_equal (incaps, self->incaps) &&
@@ -248,10 +223,10 @@ failed:
 }
 
 static gboolean
-gst_v4l2_transform_query (GstBaseTransform * trans, GstPadDirection direction,
+gst_rga_convert_query (GstBaseTransform * trans, GstPadDirection direction,
     GstQuery * query)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
   gboolean ret = TRUE;
 
   switch (GST_QUERY_TYPE (query)) {
@@ -304,10 +279,9 @@ gst_v4l2_transform_query (GstBaseTransform * trans, GstPadDirection direction,
 }
 
 static gboolean
-gst_v4l2_transform_decide_allocation (GstBaseTransform * trans,
-    GstQuery * query)
+gst_rga_convert_decide_allocation (GstBaseTransform * trans, GstQuery * query)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
   gboolean ret = FALSE;
 
   GST_DEBUG_OBJECT (self, "called");
@@ -331,10 +305,10 @@ activate_failed:
 }
 
 static gboolean
-gst_v4l2_transform_propose_allocation (GstBaseTransform * trans,
+gst_rga_convert_propose_allocation (GstBaseTransform * trans,
     GstQuery * decide_query, GstQuery * query)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
   gboolean ret = FALSE;
 
   GST_DEBUG_OBJECT (self, "called");
@@ -353,7 +327,7 @@ gst_v4l2_transform_propose_allocation (GstBaseTransform * trans,
 
 /* copies the given caps */
 static GstCaps *
-gst_v4l2_transform_caps_remove_format_info (GstCaps * caps)
+gst_rga_convert_caps_remove_format_info (GstCaps * caps)
 {
   GstStructure *st;
   GstCapsFeatures *f;
@@ -390,14 +364,14 @@ gst_v4l2_transform_caps_remove_format_info (GstCaps * caps)
  * However, we should prefer passthrough, so if passthrough is possible,
  * put it first in the list. */
 static GstCaps *
-gst_v4l2_transform_transform_caps (GstBaseTransform * btrans,
+gst_rga_convert_transform_caps (GstBaseTransform * btrans,
     GstPadDirection direction, GstCaps * caps, GstCaps * filter)
 {
   GstCaps *tmp, *tmp2;
   GstCaps *result;
 
   /* Get all possible caps that we can transform to */
-  tmp = gst_v4l2_transform_caps_remove_format_info (caps);
+  tmp = gst_rga_convert_caps_remove_format_info (caps);
 
   if (filter) {
     tmp2 = gst_caps_intersect_full (filter, tmp, GST_CAPS_INTERSECT_FIRST);
@@ -414,7 +388,7 @@ gst_v4l2_transform_transform_caps (GstBaseTransform * btrans,
 }
 
 static GstCaps *
-gst_v4l2_transform_fixate_caps (GstBaseTransform * trans,
+gst_rga_convert_fixate_caps (GstBaseTransform * trans,
     GstPadDirection direction, GstCaps * caps, GstCaps * othercaps)
 {
   GstStructure *ins, *outs;
@@ -874,10 +848,10 @@ done:
 }
 
 static GstFlowReturn
-gst_v4l2_transform_prepare_output_buffer (GstBaseTransform * trans,
+gst_rga_convert_prepare_output_buffer (GstBaseTransform * trans,
     GstBuffer * inbuf, GstBuffer ** outbuf)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
   GstBufferPool *pool = GST_BUFFER_POOL (self->v4l2output->pool);
   GstFlowReturn ret = GST_FLOW_OK;
   GstBaseTransformClass *bclass = GST_BASE_TRANSFORM_CLASS (parent_class);
@@ -954,7 +928,7 @@ alloc_failed:
 }
 
 static GstFlowReturn
-gst_v4l2_transform_transform (GstBaseTransform * trans, GstBuffer * inbuf,
+gst_rga_convert_transform (GstBaseTransform * trans, GstBuffer * inbuf,
     GstBuffer * outbuf)
 {
   /* Nothing to do */
@@ -962,9 +936,9 @@ gst_v4l2_transform_transform (GstBaseTransform * trans, GstBuffer * inbuf,
 }
 
 static gboolean
-gst_v4l2_transform_sink_event (GstBaseTransform * trans, GstEvent * event)
+gst_rga_convert_sink_event (GstBaseTransform * trans, GstEvent * event)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
+  GstRGAConvert *self = GST_RGA_CONVERT (trans);
   gboolean ret;
 
   /* Nothing to flush in passthrough */
@@ -998,15 +972,14 @@ gst_v4l2_transform_sink_event (GstBaseTransform * trans, GstEvent * event)
 }
 
 static GstStateChangeReturn
-gst_v4l2_transform_change_state (GstElement * element,
-    GstStateChange transition)
+gst_rga_convert_change_state (GstElement * element, GstStateChange transition)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (element);
+  GstRGAConvert *self = GST_RGA_CONVERT (element);
   GstStateChangeReturn ret;
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
-      if (!gst_v4l2_transform_open (self))
+      if (!gst_rga_convert_open (self))
         return GST_STATE_CHANGE_FAILURE;
       break;
     case GST_STATE_CHANGE_PAUSED_TO_READY:
@@ -1021,7 +994,7 @@ gst_v4l2_transform_change_state (GstElement * element,
 
   switch (transition) {
     case GST_STATE_CHANGE_READY_TO_NULL:
-      gst_v4l2_transform_close (self);
+      gst_rga_convert_close (self);
       break;
     default:
       break;
@@ -1031,9 +1004,9 @@ gst_v4l2_transform_change_state (GstElement * element,
 }
 
 static void
-gst_v4l2_transform_dispose (GObject * object)
+gst_rga_convert_dispose (GObject * object)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (object);
+  GstRGAConvert *self = GST_RGA_CONVERT (object);
 
   gst_caps_replace (&self->probed_sinkcaps, NULL);
   gst_caps_replace (&self->probed_srccaps, NULL);
@@ -1042,9 +1015,9 @@ gst_v4l2_transform_dispose (GObject * object)
 }
 
 static void
-gst_v4l2_transform_finalize (GObject * object)
+gst_rga_convert_finalize (GObject * object)
 {
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (object);
+  GstRGAConvert *self = GST_RGA_CONVERT (object);
 
   gst_v4l2_object_destroy (self->v4l2capture);
   gst_v4l2_object_destroy (self->v4l2output);
@@ -1053,7 +1026,7 @@ gst_v4l2_transform_finalize (GObject * object)
 }
 
 static void
-gst_v4l2_transform_init (GstV4l2Transform * self)
+gst_rga_convert_init (GstRGAConvert * self)
 {
   /* V4L2 object are created in subinstance_init */
   /* enable QoS */
@@ -1061,10 +1034,10 @@ gst_v4l2_transform_init (GstV4l2Transform * self)
 }
 
 static void
-gst_v4l2_transform_subinstance_init (GTypeInstance * instance, gpointer g_class)
+gst_rga_convert_subinstance_init (GTypeInstance * instance, gpointer g_class)
 {
-  GstV4l2TransformClass *klass = GST_V4L2_TRANSFORM_CLASS (g_class);
-  GstV4l2Transform *self = GST_V4L2_TRANSFORM (instance);
+  GstRGAConvertClass *klass = GST_RGA_CONVERT_CLASS (g_class);
+  GstRGAConvert *self = GST_RGA_CONVERT (instance);
 
   self->v4l2output = gst_v4l2_object_new (GST_ELEMENT (self),
       V4L2_BUF_TYPE_VIDEO_OUTPUT, klass->default_device,
@@ -1080,7 +1053,7 @@ gst_v4l2_transform_subinstance_init (GTypeInstance * instance, gpointer g_class)
 }
 
 static void
-gst_v4l2_transform_class_init (GstV4l2TransformClass * klass)
+gst_rga_convert_class_init (GstRGAConvertClass * klass)
 {
   GstElementClass *element_class;
   GObjectClass *gobject_class;
@@ -1090,55 +1063,52 @@ gst_v4l2_transform_class_init (GstV4l2TransformClass * klass)
   gobject_class = (GObjectClass *) klass;
   base_transform_class = (GstBaseTransformClass *) klass;
 
-  GST_DEBUG_CATEGORY_INIT (gst_v4l2_transform_debug, "rk_v4l2transform", 0,
+  GST_DEBUG_CATEGORY_INIT (gst_rga_convert_debug, "rgaconvert", 0,
       "V4L2 Converter(Rockchip)");
 
   gst_element_class_set_static_metadata (element_class,
-      "V4L2 Video Converter",
-      "Filter/Converter/Video/Scaler",
-      "Transform streams via V4L2 API",
-      "Nicolas Dufresne <nicolas.dufresne@collabora.com>");
+      "RGA Video Converter",
+      "Filter/Converter/Video/Scaler", "Transform streams via V4L2 API", "");
 
-  gobject_class->dispose = GST_DEBUG_FUNCPTR (gst_v4l2_transform_dispose);
-  gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_v4l2_transform_finalize);
+  gobject_class->dispose = GST_DEBUG_FUNCPTR (gst_rga_convert_dispose);
+  gobject_class->finalize = GST_DEBUG_FUNCPTR (gst_rga_convert_finalize);
   gobject_class->set_property =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_set_property);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_set_property);
   gobject_class->get_property =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_get_property);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_get_property);
 
-  base_transform_class->stop = GST_DEBUG_FUNCPTR (gst_v4l2_transform_stop);
-  base_transform_class->set_caps =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_set_caps);
-  base_transform_class->query = GST_DEBUG_FUNCPTR (gst_v4l2_transform_query);
+  base_transform_class->stop = GST_DEBUG_FUNCPTR (gst_rga_convert_stop);
+  base_transform_class->set_caps = GST_DEBUG_FUNCPTR (gst_rga_convert_set_caps);
+  base_transform_class->query = GST_DEBUG_FUNCPTR (gst_rga_convert_query);
   base_transform_class->sink_event =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_sink_event);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_sink_event);
   base_transform_class->decide_allocation =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_decide_allocation);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_decide_allocation);
   base_transform_class->propose_allocation =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_propose_allocation);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_propose_allocation);
   base_transform_class->transform_caps =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_transform_caps);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_transform_caps);
   base_transform_class->fixate_caps =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_fixate_caps);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_fixate_caps);
   base_transform_class->prepare_output_buffer =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_prepare_output_buffer);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_prepare_output_buffer);
   base_transform_class->transform =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_transform);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_transform);
 
   base_transform_class->passthrough_on_same_caps = TRUE;
 
   element_class->change_state =
-      GST_DEBUG_FUNCPTR (gst_v4l2_transform_change_state);
+      GST_DEBUG_FUNCPTR (gst_rga_convert_change_state);
 
   gst_v4l2_object_install_m2m_properties_helper (gobject_class);
 }
 
 static void
-gst_v4l2_transform_subclass_init (gpointer g_class, gpointer data)
+gst_rga_convert_subclass_init (gpointer g_class, gpointer data)
 {
-  GstV4l2TransformClass *klass = GST_V4L2_TRANSFORM_CLASS (g_class);
+  GstRGAConvertClass *klass = GST_RGA_CONVERT_CLASS (g_class);
   GstElementClass *element_class = GST_ELEMENT_CLASS (g_class);
-  GstV4l2TransformCData *cdata = data;
+  GstRGAConvertCData *cdata = data;
 
   klass->default_device = cdata->device;
 
@@ -1167,30 +1137,30 @@ gst_v4l2_is_transform (GstCaps * sink_caps, GstCaps * src_caps)
 }
 
 gboolean
-gst_v4l2_transform_register (GstPlugin * plugin, const gchar * basename,
+gst_rga_convert_register (GstPlugin * plugin, const gchar * basename,
     const gchar * device_path, GstCaps * sink_caps, GstCaps * src_caps)
 {
   GTypeQuery type_query;
   GTypeInfo type_info = { 0, };
   GType type, subtype;
   gchar *type_name;
-  GstV4l2TransformCData *cdata;
+  GstRGAConvertCData *cdata;
 
-  cdata = g_new0 (GstV4l2TransformCData, 1);
+  cdata = g_new0 (GstRGAConvertCData, 1);
   cdata->device = g_strdup (device_path);
   cdata->sink_caps = gst_caps_ref (sink_caps);
   cdata->src_caps = gst_caps_ref (src_caps);
 
-  type = gst_v4l2_transform_get_type ();
+  type = gst_rga_convert_get_type ();
   g_type_query (type, &type_query);
   memset (&type_info, 0, sizeof (type_info));
   type_info.class_size = type_query.class_size;
   type_info.instance_size = type_query.instance_size;
-  type_info.class_init = gst_v4l2_transform_subclass_init;
+  type_info.class_init = gst_rga_convert_subclass_init;
   type_info.class_data = cdata;
-  type_info.instance_init = gst_v4l2_transform_subinstance_init;
+  type_info.instance_init = gst_rga_convert_subinstance_init;
 
-  type_name = g_strdup_printf ("v4l2%sconvert", basename);
+  type_name = g_strdup_printf ("rgaconvert");
   subtype = g_type_register_static (type, type_name, &type_info, 0);
 
   gst_element_register (plugin, type_name, GST_RANK_NONE, subtype);

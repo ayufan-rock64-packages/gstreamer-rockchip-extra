@@ -1,45 +1,3 @@
-/* GStreamer
- *
- * Copyright (C) 2001-2002 Ronald Bultje <rbultje@ronald.bitfreak.net>
- *               2006 Edgard Lima <edgard.lima@gmail.com>
- *
- * gstv4l2src.c: Video4Linux2 source element
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- */
-
-/**
- * SECTION:element-v4l2src
- *
- * v4l2src can be used to capture video from v4l2 devices, like webcams and tv
- * cards.
- *
- * <refsect2>
- * <title>Example launch lines</title>
- * |[
- * gst-launch-1.0 v4l2src ! xvimagesink
- * ]| This pipeline shows the video captured from /dev/video0 tv card and for
- * webcams.
- * |[
- * gst-launch-1.0 v4l2src ! jpegdec ! xvimagesink
- * ]| This pipeline shows the video captured from a webcam that delivers jpeg
- * images.
- * </refsect2>
- */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -51,15 +9,15 @@
 #include <gst/video/gstvideometa.h>
 #include <gst/video/gstvideopool.h>
 
-#include "gstv4l2src.h"
+#include "rkispsrc.h"
 
 #include "gstv4l2colorbalance.h"
 #include "gstv4l2vidorient.h"
 
 #include "gst/gst-i18n-plugin.h"
 
-GST_DEBUG_CATEGORY (v4l2src_debug);
-#define GST_CAT_DEFAULT v4l2src_debug
+GST_DEBUG_CATEGORY (ispsrc_debug);
+#define GST_CAT_DEFAULT ispsrc_debug
 
 #define DEFAULT_PROP_DEVICE   "/dev/video0"
 
@@ -79,47 +37,46 @@ enum
 
 static guint gst_v4l2_signals[LAST_SIGNAL] = { 0 };
 
-GST_IMPLEMENT_V4L2_COLOR_BALANCE_METHODS (GstV4l2Src, gst_v4l2src);
-GST_IMPLEMENT_V4L2_VIDORIENT_METHODS (GstV4l2Src, gst_v4l2src);
+GST_IMPLEMENT_V4L2_COLOR_BALANCE_METHODS (GstISPSrc, gst_ispsrc);
+GST_IMPLEMENT_V4L2_VIDORIENT_METHODS (GstISPSrc, gst_ispsrc);
 
-static void gst_v4l2src_uri_handler_init (gpointer g_iface,
-    gpointer iface_data);
+static void gst_ispsrc_uri_handler_init (gpointer g_iface, gpointer iface_data);
 
-#define gst_v4l2src_parent_class parent_class
-G_DEFINE_TYPE_WITH_CODE (GstV4l2Src, gst_v4l2src, GST_TYPE_PUSH_SRC,
-    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_v4l2src_uri_handler_init);
+#define gst_ispsrc_parent_class parent_class
+G_DEFINE_TYPE_WITH_CODE (GstISPSrc, gst_ispsrc, GST_TYPE_PUSH_SRC,
+    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_ispsrc_uri_handler_init);
     G_IMPLEMENT_INTERFACE (GST_TYPE_COLOR_BALANCE,
-        gst_v4l2src_color_balance_interface_init);
+        gst_ispsrc_color_balance_interface_init);
     G_IMPLEMENT_INTERFACE (GST_TYPE_VIDEO_ORIENTATION,
-        gst_v4l2src_video_orientation_interface_init));
+        gst_ispsrc_video_orientation_interface_init));
 
-static void gst_v4l2src_finalize (GstV4l2Src * v4l2src);
+static void gst_ispsrc_finalize (GstISPSrc * ispsrc);
 
 /* element methods */
-static GstStateChangeReturn gst_v4l2src_change_state (GstElement * element,
+static GstStateChangeReturn gst_ispsrc_change_state (GstElement * element,
     GstStateChange transition);
 
 /* basesrc methods */
-static gboolean gst_v4l2src_start (GstBaseSrc * src);
-static gboolean gst_v4l2src_unlock (GstBaseSrc * src);
-static gboolean gst_v4l2src_unlock_stop (GstBaseSrc * src);
-static gboolean gst_v4l2src_stop (GstBaseSrc * src);
-static gboolean gst_v4l2src_set_caps (GstBaseSrc * src, GstCaps * caps);
-static GstCaps *gst_v4l2src_get_caps (GstBaseSrc * src, GstCaps * filter);
-static gboolean gst_v4l2src_query (GstBaseSrc * bsrc, GstQuery * query);
-static gboolean gst_v4l2src_decide_allocation (GstBaseSrc * src,
+static gboolean gst_ispsrc_start (GstBaseSrc * src);
+static gboolean gst_ispsrc_unlock (GstBaseSrc * src);
+static gboolean gst_ispsrc_unlock_stop (GstBaseSrc * src);
+static gboolean gst_ispsrc_stop (GstBaseSrc * src);
+static gboolean gst_ispsrc_set_caps (GstBaseSrc * src, GstCaps * caps);
+static GstCaps *gst_ispsrc_get_caps (GstBaseSrc * src, GstCaps * filter);
+static gboolean gst_ispsrc_query (GstBaseSrc * bsrc, GstQuery * query);
+static gboolean gst_ispsrc_decide_allocation (GstBaseSrc * src,
     GstQuery * query);
-static GstFlowReturn gst_v4l2src_create (GstPushSrc * src, GstBuffer ** out);
-static GstCaps *gst_v4l2src_fixate (GstBaseSrc * basesrc, GstCaps * caps);
-static gboolean gst_v4l2src_negotiate (GstBaseSrc * basesrc);
+static GstFlowReturn gst_ispsrc_create (GstPushSrc * src, GstBuffer ** out);
+static GstCaps *gst_ispsrc_fixate (GstBaseSrc * basesrc, GstCaps * caps);
+static gboolean gst_ispsrc_negotiate (GstBaseSrc * basesrc);
 
-static void gst_v4l2src_set_property (GObject * object, guint prop_id,
+static void gst_ispsrc_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec);
-static void gst_v4l2src_get_property (GObject * object, guint prop_id,
+static void gst_ispsrc_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec);
 
 static void
-gst_v4l2src_class_init (GstV4l2SrcClass * klass)
+gst_ispsrc_class_init (GstISPSrcClass * klass)
 {
   GObjectClass *gobject_class;
   GstElementClass *element_class;
@@ -131,18 +88,18 @@ gst_v4l2src_class_init (GstV4l2SrcClass * klass)
   basesrc_class = GST_BASE_SRC_CLASS (klass);
   pushsrc_class = GST_PUSH_SRC_CLASS (klass);
 
-  gobject_class->finalize = (GObjectFinalizeFunc) gst_v4l2src_finalize;
-  gobject_class->set_property = gst_v4l2src_set_property;
-  gobject_class->get_property = gst_v4l2src_get_property;
+  gobject_class->finalize = (GObjectFinalizeFunc) gst_ispsrc_finalize;
+  gobject_class->set_property = gst_ispsrc_set_property;
+  gobject_class->get_property = gst_ispsrc_get_property;
 
-  element_class->change_state = gst_v4l2src_change_state;
+  element_class->change_state = gst_ispsrc_change_state;
 
   gst_v4l2_object_install_properties_helper (gobject_class,
       DEFAULT_PROP_DEVICE);
 
   /**
-   * GstV4l2Src::prepare-format:
-   * @v4l2src: the v4l2src instance
+   * GstISPSrc::prepare-format:
+   * @ispsrc: the ispsrc instance
    * @fd: the file descriptor of the current device
    * @caps: the caps of the format being set
    *
@@ -160,65 +117,62 @@ gst_v4l2src_class_init (GstV4l2SrcClass * klass)
       0, NULL, NULL, NULL, G_TYPE_NONE, 2, G_TYPE_INT, GST_TYPE_CAPS);
 
   gst_element_class_set_static_metadata (element_class,
-      "Video (video4linux2) Source", "Source/Video",
-      "Reads frames from a Video4Linux2 device",
-      "Edgard Lima <edgard.lima@gmail.com>, "
-      "Stefan Kost <ensonic@users.sf.net>");
+      "ISP Source", "Source/Video", "Reads frames from ISP", "");
 
   gst_element_class_add_pad_template
       (element_class,
       gst_pad_template_new ("src", GST_PAD_SRC, GST_PAD_ALWAYS,
           gst_v4l2_object_get_all_caps ()));
 
-  basesrc_class->get_caps = GST_DEBUG_FUNCPTR (gst_v4l2src_get_caps);
-  basesrc_class->set_caps = GST_DEBUG_FUNCPTR (gst_v4l2src_set_caps);
-  basesrc_class->start = GST_DEBUG_FUNCPTR (gst_v4l2src_start);
-  basesrc_class->unlock = GST_DEBUG_FUNCPTR (gst_v4l2src_unlock);
-  basesrc_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_v4l2src_unlock_stop);
-  basesrc_class->stop = GST_DEBUG_FUNCPTR (gst_v4l2src_stop);
-  basesrc_class->query = GST_DEBUG_FUNCPTR (gst_v4l2src_query);
-  basesrc_class->fixate = GST_DEBUG_FUNCPTR (gst_v4l2src_fixate);
-  basesrc_class->negotiate = GST_DEBUG_FUNCPTR (gst_v4l2src_negotiate);
+  basesrc_class->get_caps = GST_DEBUG_FUNCPTR (gst_ispsrc_get_caps);
+  basesrc_class->set_caps = GST_DEBUG_FUNCPTR (gst_ispsrc_set_caps);
+  basesrc_class->start = GST_DEBUG_FUNCPTR (gst_ispsrc_start);
+  basesrc_class->unlock = GST_DEBUG_FUNCPTR (gst_ispsrc_unlock);
+  basesrc_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_ispsrc_unlock_stop);
+  basesrc_class->stop = GST_DEBUG_FUNCPTR (gst_ispsrc_stop);
+  basesrc_class->query = GST_DEBUG_FUNCPTR (gst_ispsrc_query);
+  basesrc_class->fixate = GST_DEBUG_FUNCPTR (gst_ispsrc_fixate);
+  basesrc_class->negotiate = GST_DEBUG_FUNCPTR (gst_ispsrc_negotiate);
   basesrc_class->decide_allocation =
-      GST_DEBUG_FUNCPTR (gst_v4l2src_decide_allocation);
+      GST_DEBUG_FUNCPTR (gst_ispsrc_decide_allocation);
 
-  pushsrc_class->create = GST_DEBUG_FUNCPTR (gst_v4l2src_create);
+  pushsrc_class->create = GST_DEBUG_FUNCPTR (gst_ispsrc_create);
 
   klass->v4l2_class_devices = NULL;
 
-  GST_DEBUG_CATEGORY_INIT (v4l2src_debug, "rk_v4l2src", 0,
-      "V4L2 source element(Rockchip)");
+  GST_DEBUG_CATEGORY_INIT (ispsrc_debug, "ispsrc", 0,
+      "ISP source element(Rockchip)");
 }
 
 static void
-gst_v4l2src_init (GstV4l2Src * v4l2src)
+gst_ispsrc_init (GstISPSrc * ispsrc)
 {
   /* fixme: give an update_fps_function */
-  v4l2src->v4l2object = gst_v4l2_object_new (GST_ELEMENT (v4l2src),
+  ispsrc->v4l2object = gst_v4l2_object_new (GST_ELEMENT (ispsrc),
       V4L2_BUF_TYPE_VIDEO_CAPTURE, DEFAULT_PROP_DEVICE,
       gst_v4l2_get_input, gst_v4l2_set_input, NULL);
 
-  gst_base_src_set_format (GST_BASE_SRC (v4l2src), GST_FORMAT_TIME);
-  gst_base_src_set_live (GST_BASE_SRC (v4l2src), TRUE);
+  gst_base_src_set_format (GST_BASE_SRC (ispsrc), GST_FORMAT_TIME);
+  gst_base_src_set_live (GST_BASE_SRC (ispsrc), TRUE);
 }
 
 
 static void
-gst_v4l2src_finalize (GstV4l2Src * v4l2src)
+gst_ispsrc_finalize (GstISPSrc * ispsrc)
 {
-  gst_v4l2_object_destroy (v4l2src->v4l2object);
+  gst_v4l2_object_destroy (ispsrc->v4l2object);
 
-  G_OBJECT_CLASS (parent_class)->finalize ((GObject *) (v4l2src));
+  G_OBJECT_CLASS (parent_class)->finalize ((GObject *) (ispsrc));
 }
 
 
 static void
-gst_v4l2src_set_property (GObject * object,
+gst_ispsrc_set_property (GObject * object,
     guint prop_id, const GValue * value, GParamSpec * pspec)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (object);
+  GstISPSrc *ispsrc = GST_ISPSRC (object);
 
-  if (!gst_v4l2_object_set_property_helper (v4l2src->v4l2object,
+  if (!gst_v4l2_object_set_property_helper (ispsrc->v4l2object,
           prop_id, value, pspec)) {
     switch (prop_id) {
       default:
@@ -229,12 +183,12 @@ gst_v4l2src_set_property (GObject * object,
 }
 
 static void
-gst_v4l2src_get_property (GObject * object,
+gst_ispsrc_get_property (GObject * object,
     guint prop_id, GValue * value, GParamSpec * pspec)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (object);
+  GstISPSrc *ispsrc = GST_ISPSRC (object);
 
-  if (!gst_v4l2_object_get_property_helper (v4l2src->v4l2object,
+  if (!gst_v4l2_object_get_property_helper (ispsrc->v4l2object,
           prop_id, value, pspec)) {
     switch (prop_id) {
       default:
@@ -246,7 +200,7 @@ gst_v4l2src_get_property (GObject * object,
 
 /* this function is a bit of a last resort */
 static GstCaps *
-gst_v4l2src_fixate (GstBaseSrc * basesrc, GstCaps * caps)
+gst_ispsrc_fixate (GstBaseSrc * basesrc, GstCaps * caps)
 {
   GstStructure *structure;
   gint i;
@@ -286,7 +240,7 @@ gst_v4l2src_fixate (GstBaseSrc * basesrc, GstCaps * caps)
 
 
 static gboolean
-gst_v4l2src_negotiate (GstBaseSrc * basesrc)
+gst_ispsrc_negotiate (GstBaseSrc * basesrc)
 {
   GstCaps *thiscaps;
   GstCaps *caps = NULL;
@@ -361,7 +315,7 @@ gst_v4l2src_negotiate (GstBaseSrc * basesrc)
 
     /* now fixate */
     if (!gst_caps_is_empty (caps)) {
-      caps = gst_v4l2src_fixate (basesrc, caps);
+      caps = gst_ispsrc_fixate (basesrc, caps);
       GST_DEBUG_OBJECT (basesrc, "fixated to: %" GST_PTR_FORMAT, caps);
 
       if (gst_caps_is_any (caps)) {
@@ -387,34 +341,34 @@ no_nego_needed:
 }
 
 static GstCaps *
-gst_v4l2src_get_caps (GstBaseSrc * src, GstCaps * filter)
+gst_ispsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
 {
-  GstV4l2Src *v4l2src;
+  GstISPSrc *isps;
   GstV4l2Object *obj;
 
-  v4l2src = GST_V4L2SRC (src);
-  obj = v4l2src->v4l2object;
+  isps = GST_ISPSRC (src);
+  obj = isps->v4l2object;
 
   if (!GST_V4L2_IS_OPEN (obj)) {
-    return gst_pad_get_pad_template_caps (GST_BASE_SRC_PAD (v4l2src));
+    return gst_pad_get_pad_template_caps (GST_BASE_SRC_PAD (isps));
   }
 
   return gst_v4l2_object_get_caps (obj, filter);
 }
 
 static gboolean
-gst_v4l2src_set_format (GstV4l2Src * v4l2src, GstCaps * caps)
+gst_ispsrc_set_format (GstISPSrc * ispsrc, GstCaps * caps)
 {
   GstV4l2Error error = GST_V4L2_ERROR_INIT;
   GstV4l2Object *obj;
 
-  obj = v4l2src->v4l2object;
+  obj = ispsrc->v4l2object;
 
-  g_signal_emit (v4l2src, gst_v4l2_signals[SIGNAL_PRE_SET_FORMAT], 0,
-      v4l2src->v4l2object->video_fd, caps);
+  g_signal_emit (ispsrc, gst_v4l2_signals[SIGNAL_PRE_SET_FORMAT], 0,
+      ispsrc->v4l2object->video_fd, caps);
 
   if (!gst_v4l2_object_set_format (obj, caps, &error)) {
-    gst_v4l2_error (v4l2src, &error);
+    gst_v4l2_error (ispsrc, &error);
     return FALSE;
   }
 
@@ -422,13 +376,13 @@ gst_v4l2src_set_format (GstV4l2Src * v4l2src, GstCaps * caps)
 }
 
 static gboolean
-gst_v4l2src_set_caps (GstBaseSrc * src, GstCaps * caps)
+gst_ispsrc_set_caps (GstBaseSrc * src, GstCaps * caps)
 {
-  GstV4l2Src *v4l2src;
+  GstISPSrc *ispsrc;
   GstV4l2Object *obj;
 
-  v4l2src = GST_V4L2SRC (src);
-  obj = v4l2src->v4l2object;
+  ispsrc = GST_ISPSRC (src);
+  obj = ispsrc->v4l2object;
 
   /* make sure the caps changed before doing anything */
   if (gst_v4l2_object_caps_equal (obj, caps))
@@ -443,10 +397,10 @@ gst_v4l2src_set_caps (GstBaseSrc * src, GstCaps * caps)
      * should indirectly reclaim buffers, after that we can
      * set the format and then configure our pool */
     if (gst_v4l2_object_try_format (obj, caps, &error)) {
-      v4l2src->renegotiation_adjust = v4l2src->offset + 1;
-      v4l2src->pending_set_fmt = TRUE;
+      ispsrc->renegotiation_adjust = ispsrc->offset + 1;
+      ispsrc->pending_set_fmt = TRUE;
     } else {
-      gst_v4l2_error (v4l2src, &error);
+      gst_v4l2_error (ispsrc, &error);
       return FALSE;
     }
   } else {
@@ -454,16 +408,16 @@ gst_v4l2src_set_caps (GstBaseSrc * src, GstCaps * caps)
     if (!gst_v4l2_object_stop (obj))
       return FALSE;
 
-    return gst_v4l2src_set_format (v4l2src, caps);
+    return gst_ispsrc_set_format (ispsrc, caps);
   }
 
   return TRUE;
 }
 
 static gboolean
-gst_v4l2src_decide_allocation (GstBaseSrc * bsrc, GstQuery * query)
+gst_ispsrc_decide_allocation (GstBaseSrc * bsrc, GstQuery * query)
 {
-  GstV4l2Src *src = GST_V4L2SRC (bsrc);
+  GstISPSrc *src = GST_ISPSRC (bsrc);
   gboolean ret = TRUE;
 
   if (src->pending_set_fmt) {
@@ -471,7 +425,7 @@ gst_v4l2src_decide_allocation (GstBaseSrc * bsrc, GstQuery * query)
 
     if (!gst_v4l2_object_stop (src->v4l2object))
       return FALSE;
-    ret = gst_v4l2src_set_format (src, caps);
+    ret = gst_ispsrc_set_format (src, caps);
     gst_caps_unref (caps);
     src->pending_set_fmt = FALSE;
   } else if (gst_buffer_pool_is_active (src->v4l2object->pool)) {
@@ -527,13 +481,13 @@ activate_failed:
 }
 
 static gboolean
-gst_v4l2src_query (GstBaseSrc * bsrc, GstQuery * query)
+gst_ispsrc_query (GstBaseSrc * bsrc, GstQuery * query)
 {
-  GstV4l2Src *src;
+  GstISPSrc *src;
   GstV4l2Object *obj;
   gboolean res = FALSE;
 
-  src = GST_V4L2SRC (bsrc);
+  src = GST_ISPSRC (bsrc);
   obj = src->v4l2object;
 
   switch (GST_QUERY_TYPE (query)) {
@@ -597,62 +551,62 @@ done:
  * negotiate method. stop will both stop capture and close the device.
  */
 static gboolean
-gst_v4l2src_start (GstBaseSrc * src)
+gst_ispsrc_start (GstBaseSrc * src)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (src);
+  GstISPSrc *ispsrc = GST_ISPSRC (src);
 
-  v4l2src->offset = 0;
-  v4l2src->renegotiation_adjust = 0;
+  ispsrc->offset = 0;
+  ispsrc->renegotiation_adjust = 0;
 
   /* activate settings for first frame */
-  v4l2src->ctrl_time = 0;
-  gst_object_sync_values (GST_OBJECT (src), v4l2src->ctrl_time);
+  ispsrc->ctrl_time = 0;
+  gst_object_sync_values (GST_OBJECT (src), ispsrc->ctrl_time);
 
-  v4l2src->has_bad_timestamp = FALSE;
-  v4l2src->last_timestamp = 0;
+  ispsrc->has_bad_timestamp = FALSE;
+  ispsrc->last_timestamp = 0;
 
   return TRUE;
 }
 
 static gboolean
-gst_v4l2src_unlock (GstBaseSrc * src)
+gst_ispsrc_unlock (GstBaseSrc * src)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (src);
-  return gst_v4l2_object_unlock (v4l2src->v4l2object);
+  GstISPSrc *ispsrc = GST_ISPSRC (src);
+  return gst_v4l2_object_unlock (ispsrc->v4l2object);
 }
 
 static gboolean
-gst_v4l2src_unlock_stop (GstBaseSrc * src)
+gst_ispsrc_unlock_stop (GstBaseSrc * src)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (src);
+  GstISPSrc *ispsrc = GST_ISPSRC (src);
 
-  v4l2src->last_timestamp = 0;
+  ispsrc->last_timestamp = 0;
 
-  return gst_v4l2_object_unlock_stop (v4l2src->v4l2object);
+  return gst_v4l2_object_unlock_stop (ispsrc->v4l2object);
 }
 
 static gboolean
-gst_v4l2src_stop (GstBaseSrc * src)
+gst_ispsrc_stop (GstBaseSrc * src)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (src);
-  GstV4l2Object *obj = v4l2src->v4l2object;
+  GstISPSrc *ispsrc = GST_ISPSRC (src);
+  GstV4l2Object *obj = ispsrc->v4l2object;
 
   if (GST_V4L2_IS_ACTIVE (obj)) {
     if (!gst_v4l2_object_stop (obj))
       return FALSE;
   }
 
-  v4l2src->pending_set_fmt = FALSE;
+  ispsrc->pending_set_fmt = FALSE;
 
   return TRUE;
 }
 
 static GstStateChangeReturn
-gst_v4l2src_change_state (GstElement * element, GstStateChange transition)
+gst_ispsrc_change_state (GstElement * element, GstStateChange transition)
 {
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
-  GstV4l2Src *v4l2src = GST_V4L2SRC (element);
-  GstV4l2Object *obj = v4l2src->v4l2object;
+  GstISPSrc *ispsrc = GST_ISPSRC (element);
+  GstV4l2Object *obj = ispsrc->v4l2object;
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
@@ -681,10 +635,10 @@ gst_v4l2src_change_state (GstElement * element, GstStateChange transition)
 }
 
 static GstFlowReturn
-gst_v4l2src_create (GstPushSrc * src, GstBuffer ** buf)
+gst_ispsrc_create (GstPushSrc * src, GstBuffer ** buf)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (src);
-  GstV4l2Object *obj = v4l2src->v4l2object;
+  GstISPSrc *ispsrc = GST_ISPSRC (src);
+  GstV4l2Object *obj = ispsrc->v4l2object;
   GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL_CAST (obj->pool);
   GstFlowReturn ret;
   GstClock *clock;
@@ -711,16 +665,16 @@ gst_v4l2src_create (GstPushSrc * src, GstBuffer ** buf)
 
   /* timestamps, LOCK to get clock and base time. */
   /* FIXME: element clock and base_time is rarely changing */
-  GST_OBJECT_LOCK (v4l2src);
-  if ((clock = GST_ELEMENT_CLOCK (v4l2src))) {
+  GST_OBJECT_LOCK (ispsrc);
+  if ((clock = GST_ELEMENT_CLOCK (ispsrc))) {
     /* we have a clock, get base time and ref clock */
-    base_time = GST_ELEMENT (v4l2src)->base_time;
+    base_time = GST_ELEMENT (ispsrc)->base_time;
     gst_object_ref (clock);
   } else {
     /* no clock, can't set timestamps */
     base_time = GST_CLOCK_TIME_NONE;
   }
-  GST_OBJECT_UNLOCK (v4l2src);
+  GST_OBJECT_UNLOCK (ispsrc);
 
   /* sample pipeline clock */
   if (clock) {
@@ -731,7 +685,7 @@ gst_v4l2src_create (GstPushSrc * src, GstBuffer ** buf)
   }
 
 retry:
-  if (!v4l2src->has_bad_timestamp && timestamp != GST_CLOCK_TIME_NONE) {
+  if (!ispsrc->has_bad_timestamp && timestamp != GST_CLOCK_TIME_NONE) {
     struct timespec now;
     GstClockTime gstnow;
 
@@ -757,32 +711,32 @@ retry:
      *   - Delay is bigger then the actual timestamp
      * */
     if (timestamp > gstnow) {
-      GST_WARNING_OBJECT (v4l2src,
+      GST_WARNING_OBJECT (ispsrc,
           "Timestamp in the future detected, ignoring driver timestamps");
-      v4l2src->has_bad_timestamp = TRUE;
+      ispsrc->has_bad_timestamp = TRUE;
       goto retry;
     }
 
-    if (v4l2src->last_timestamp > timestamp) {
-      GST_WARNING_OBJECT (v4l2src,
+    if (ispsrc->last_timestamp > timestamp) {
+      GST_WARNING_OBJECT (ispsrc,
           "Timestamp going backward, ignoring driver timestamps");
-      v4l2src->has_bad_timestamp = TRUE;
+      ispsrc->has_bad_timestamp = TRUE;
       goto retry;
     }
 
     delay = gstnow - timestamp;
 
     if (delay > timestamp) {
-      GST_WARNING_OBJECT (v4l2src,
+      GST_WARNING_OBJECT (ispsrc,
           "Timestamp does not correlate with any clock, ignoring driver timestamps");
-      v4l2src->has_bad_timestamp = TRUE;
+      ispsrc->has_bad_timestamp = TRUE;
       goto retry;
     }
 
     /* Save last timestamp for sanity checks */
-    v4l2src->last_timestamp = timestamp;
+    ispsrc->last_timestamp = timestamp;
 
-    GST_DEBUG_OBJECT (v4l2src, "ts: %" GST_TIME_FORMAT " now %" GST_TIME_FORMAT
+    GST_DEBUG_OBJECT (ispsrc, "ts: %" GST_TIME_FORMAT " now %" GST_TIME_FORMAT
         " delay %" GST_TIME_FORMAT, GST_TIME_ARGS (timestamp),
         GST_TIME_ARGS (gstnow), GST_TIME_ARGS (delay));
   } else {
@@ -810,45 +764,45 @@ retry:
 
   /* activate settings for next frame */
   if (GST_CLOCK_TIME_IS_VALID (duration)) {
-    v4l2src->ctrl_time += duration;
+    ispsrc->ctrl_time += duration;
   } else {
     /* this is not very good (as it should be the next timestamp),
      * still good enough for linear fades (as long as it is not -1)
      */
-    v4l2src->ctrl_time = timestamp;
+    ispsrc->ctrl_time = timestamp;
   }
-  gst_object_sync_values (GST_OBJECT (src), v4l2src->ctrl_time);
+  gst_object_sync_values (GST_OBJECT (src), ispsrc->ctrl_time);
 
   GST_INFO_OBJECT (src, "sync to %" GST_TIME_FORMAT " out ts %" GST_TIME_FORMAT,
-      GST_TIME_ARGS (v4l2src->ctrl_time), GST_TIME_ARGS (timestamp));
+      GST_TIME_ARGS (ispsrc->ctrl_time), GST_TIME_ARGS (timestamp));
 
   /* use generated offset values only if there are not already valid ones
    * set by the v4l2 device */
   if (!GST_BUFFER_OFFSET_IS_VALID (*buf)
       || !GST_BUFFER_OFFSET_END_IS_VALID (*buf)) {
-    GST_BUFFER_OFFSET (*buf) = v4l2src->offset++;
-    GST_BUFFER_OFFSET_END (*buf) = v4l2src->offset;
+    GST_BUFFER_OFFSET (*buf) = ispsrc->offset++;
+    GST_BUFFER_OFFSET_END (*buf) = ispsrc->offset;
   } else {
     /* adjust raw v4l2 device sequence, will restart at null in case of renegotiation
      * (streamoff/streamon) */
-    GST_BUFFER_OFFSET (*buf) += v4l2src->renegotiation_adjust;
-    GST_BUFFER_OFFSET_END (*buf) += v4l2src->renegotiation_adjust;
+    GST_BUFFER_OFFSET (*buf) += ispsrc->renegotiation_adjust;
+    GST_BUFFER_OFFSET_END (*buf) += ispsrc->renegotiation_adjust;
     /* check for frame loss with given (from v4l2 device) buffer offset */
-    if ((v4l2src->offset != 0)
-        && (GST_BUFFER_OFFSET (*buf) != (v4l2src->offset + 1))) {
-      guint64 lost_frame_count = GST_BUFFER_OFFSET (*buf) - v4l2src->offset - 1;
-      GST_WARNING_OBJECT (v4l2src,
+    if ((ispsrc->offset != 0)
+        && (GST_BUFFER_OFFSET (*buf) != (ispsrc->offset + 1))) {
+      guint64 lost_frame_count = GST_BUFFER_OFFSET (*buf) - ispsrc->offset - 1;
+      GST_WARNING_OBJECT (ispsrc,
           "lost frames detected: count = %" G_GUINT64_FORMAT " - ts: %"
           GST_TIME_FORMAT, lost_frame_count, GST_TIME_ARGS (timestamp));
 
-      qos_msg = gst_message_new_qos (GST_OBJECT_CAST (v4l2src), TRUE,
+      qos_msg = gst_message_new_qos (GST_OBJECT_CAST (ispsrc), TRUE,
           GST_CLOCK_TIME_NONE, GST_CLOCK_TIME_NONE, timestamp,
           GST_CLOCK_TIME_IS_VALID (duration) ? lost_frame_count *
           duration : GST_CLOCK_TIME_NONE);
-      gst_element_post_message (GST_ELEMENT_CAST (v4l2src), qos_msg);
+      gst_element_post_message (GST_ELEMENT_CAST (ispsrc), qos_msg);
 
     }
-    v4l2src->offset = GST_BUFFER_OFFSET (*buf);
+    ispsrc->offset = GST_BUFFER_OFFSET (*buf);
   }
 
   GST_BUFFER_TIMESTAMP (*buf) = timestamp;
@@ -883,13 +837,13 @@ error:
 
 /* GstURIHandler interface */
 static GstURIType
-gst_v4l2src_uri_get_type (GType type)
+gst_ispsrc_uri_get_type (GType type)
 {
   return GST_URI_SRC;
 }
 
 static const gchar *const *
-gst_v4l2src_uri_get_protocols (GType type)
+gst_ispsrc_uri_get_protocols (GType type)
 {
   static const gchar *protocols[] = { "v4l2", NULL };
 
@@ -897,40 +851,39 @@ gst_v4l2src_uri_get_protocols (GType type)
 }
 
 static gchar *
-gst_v4l2src_uri_get_uri (GstURIHandler * handler)
+gst_ispsrc_uri_get_uri (GstURIHandler * handler)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (handler);
+  GstISPSrc *ispsrc = GST_ISPSRC (handler);
 
-  if (v4l2src->v4l2object->videodev != NULL) {
-    return g_strdup_printf ("v4l2://%s", v4l2src->v4l2object->videodev);
+  if (ispsrc->v4l2object->videodev != NULL) {
+    return g_strdup_printf ("v4l2://%s", ispsrc->v4l2object->videodev);
   }
 
   return g_strdup ("v4l2://");
 }
 
 static gboolean
-gst_v4l2src_uri_set_uri (GstURIHandler * handler, const gchar * uri,
+gst_ispsrc_uri_set_uri (GstURIHandler * handler, const gchar * uri,
     GError ** error)
 {
-  GstV4l2Src *v4l2src = GST_V4L2SRC (handler);
+  GstISPSrc *ispsrc = GST_ISPSRC (handler);
   const gchar *device = DEFAULT_PROP_DEVICE;
 
   if (strcmp (uri, "v4l2://") != 0) {
     device = uri + 7;
   }
-  g_object_set (v4l2src, "device", device, NULL);
+  g_object_set (ispsrc, "device", device, NULL);
 
   return TRUE;
 }
 
-
 static void
-gst_v4l2src_uri_handler_init (gpointer g_iface, gpointer iface_data)
+gst_ispsrc_uri_handler_init (gpointer g_iface, gpointer iface_data)
 {
   GstURIHandlerInterface *iface = (GstURIHandlerInterface *) g_iface;
 
-  iface->get_type = gst_v4l2src_uri_get_type;
-  iface->get_protocols = gst_v4l2src_uri_get_protocols;
-  iface->get_uri = gst_v4l2src_uri_get_uri;
-  iface->set_uri = gst_v4l2src_uri_set_uri;
+  iface->get_type = gst_ispsrc_uri_get_type;
+  iface->get_protocols = gst_ispsrc_uri_get_protocols;
+  iface->get_uri = gst_ispsrc_uri_get_uri;
+  iface->set_uri = gst_ispsrc_uri_set_uri;
 }

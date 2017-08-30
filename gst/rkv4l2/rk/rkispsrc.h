@@ -21,41 +21,40 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __GST_V4L2SRC_H__
-#define __GST_V4L2SRC_H__
+#ifndef __GST_ISPSRC_H__
+#define __GST_ISPSRC_H__
 
 #include <gstv4l2object.h>
 #include <gstv4l2bufferpool.h>
 
-GST_DEBUG_CATEGORY_EXTERN (v4l2src_debug);
+GST_DEBUG_CATEGORY_EXTERN (ispsrc_debug);
 
 G_BEGIN_DECLS
+#define GST_TYPE_ISPSRC \
+  (gst_ispsrc_get_type())
+#define GST_ISPSRC(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_ISPSRC,GstISPSrc))
+#define GST_ISPSRC_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_ISPSRC,GstISPSrcClass))
+#define GST_IS_ISPSRC(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_ISPSRC))
+#define GST_IS_ISPSRC_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_ISPSRC))
 
-#define GST_TYPE_V4L2SRC \
-  (gst_v4l2src_get_type())
-#define GST_V4L2SRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_V4L2SRC,GstV4l2Src))
-#define GST_V4L2SRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_V4L2SRC,GstV4l2SrcClass))
-#define GST_IS_V4L2SRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_V4L2SRC))
-#define GST_IS_V4L2SRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_V4L2SRC))
-
-typedef struct _GstV4l2Src GstV4l2Src;
-typedef struct _GstV4l2SrcClass GstV4l2SrcClass;
+typedef struct _GstISPSrc GstISPSrc;
+typedef struct _GstISPSrcClass GstISPSrcClass;
 
 /**
- * GstV4l2Src:
+ * GstISPSrc:
  *
  * Opaque object.
  */
-struct _GstV4l2Src
+struct _GstISPSrc
 {
   GstPushSrc pushsrc;
 
-  /*< private >*/
-  GstV4l2Object * v4l2object;
+  /*< private > */
+  GstV4l2Object *v4l2object;
 
   guint64 offset;
 
@@ -71,15 +70,14 @@ struct _GstV4l2Src
   gboolean has_bad_timestamp;
 };
 
-struct _GstV4l2SrcClass
+struct _GstISPSrcClass
 {
   GstPushSrcClass parent_class;
 
   GList *v4l2_class_devices;
 };
 
-GType gst_v4l2src_get_type (void);
+GType gst_ispsrc_get_type (void);
 
 G_END_DECLS
-
-#endif /* __GST_V4L2SRC_H__ */
+#endif /* __GST_ISPSrc_H__ */
