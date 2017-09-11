@@ -9,7 +9,8 @@ libgstrkv4l2_la_SOURCES = gstv4l2.c \
 				v4l2_calls.c \
 				v4l2-utils.c \
 				rk/rkispsrc.c \
-				rk/rkrgaconvert.c
+				rk/rkrgaconvert.c \
+				rk/rkcommon.c
 
 libgstrkv4l2_la_CFLAGS =   $(GST_PLUGINS_BASE_CFLAGS) \
 				 $(GST_BASE_CFLAGS) \
@@ -38,5 +39,6 @@ noinst_HEADERS = \
 	v4l2_calls.h \
 	v4l2-utils.h \
 	rk/rkispsrc.h \
-	rk/rkrgaconvert.h
+	rk/rkrgaconvert.h \
+	rk/rkcommon.h
 

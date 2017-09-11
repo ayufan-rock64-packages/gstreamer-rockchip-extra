@@ -40,12 +40,13 @@ struct _GstRGAConvert
   /* Selected caps */
   GstCaps *incaps;
   GstCaps *outcaps;
+
+  gchar default_device[32];
 };
 
 struct _GstRGAConvertClass
 {
   GstBaseTransformClass parent_class;
-  gchar *default_device;
 };
 
 GType gst_rga_convert_get_type (void);

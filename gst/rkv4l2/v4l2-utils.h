@@ -25,7 +25,6 @@
 #include <gst/gst.h>
 
 G_BEGIN_DECLS
-
 #define GST_V4L2_ERROR_INIT { NULL, NULL }
 #define GST_V4L2_ERROR(v4l2err,domain,code,msg,dbg) \
 {\
@@ -40,39 +39,35 @@ G_BEGIN_DECLS
     v4l2err->line = __LINE__; \
   } \
 }
-
 typedef struct _GstV4l2Iterator GstV4l2Iterator;
 typedef struct _GstV4l2Error GstV4l2Error;
 
 struct _GstV4l2Iterator
 {
-    const gchar *device_path;
-    const gchar *device_name;
-    const gchar *sys_path;
+  const gchar *device_path;
+  const gchar *device_name;
+  const gchar *sys_path;
 };
 
 struct _GstV4l2Error
 {
-    GError *error;
-    gchar *dbg_message;
-    const gchar *file;
-    const gchar *func;
-    gint line;
+  GError *error;
+  gchar *dbg_message;
+  const gchar *file;
+  const gchar *func;
+  gint line;
 };
 
-GstV4l2Iterator *  gst_v4l2_iterator_new (void);
-gboolean           gst_v4l2_iterator_next (GstV4l2Iterator *it);
-void               gst_v4l2_iterator_free (GstV4l2Iterator *it);
+GstV4l2Iterator *gst_v4l2_iterator_new (void);
+gboolean gst_v4l2_iterator_next (GstV4l2Iterator * it);
+void gst_v4l2_iterator_free (GstV4l2Iterator * it);
 
-const gchar *      gst_v4l2_iterator_get_device_path (GstV4l2Iterator *it);
-const gchar *      gst_v4l2_iterator_get_device_name (GstV4l2Iterator *it);
-const gchar *      gst_v4l2_iterator_get_sys_path (GstV4l2Iterator *it);
+const gchar *gst_v4l2_iterator_get_device_path (GstV4l2Iterator * it);
+const gchar *gst_v4l2_iterator_get_device_name (GstV4l2Iterator * it);
+const gchar *gst_v4l2_iterator_get_sys_path (GstV4l2Iterator * it);
 
-void               gst_v4l2_clear_error (GstV4l2Error *error);
-void               gst_v4l2_error (gpointer element, GstV4l2Error *error);
+void gst_v4l2_clear_error (GstV4l2Error * error);
+void gst_v4l2_error (gpointer element, GstV4l2Error * error);
 
 G_END_DECLS
-
 #endif /* __V4L2_UTILS_H__ */
-
-

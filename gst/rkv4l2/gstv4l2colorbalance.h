@@ -29,7 +29,6 @@
 #include "v4l2_calls.h"
 
 G_BEGIN_DECLS
-
 #define GST_TYPE_V4L2_COLOR_BALANCE_CHANNEL \
   (gst_v4l2_color_balance_channel_get_type ())
 #define GST_V4L2_COLOR_BALANCE_CHANNEL(obj) \
@@ -42,27 +41,27 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GST_TYPE_V4L2_COLOR_BALANCE_CHANNEL))
 #define GST_IS_V4L2_COLOR_BALANCE_CHANNEL_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE ((klass), GST_TYPE_V4L2_COLOR_BALANCE_CHANNEL))
-
-typedef struct _GstV4l2ColorBalanceChannel {
+    typedef struct _GstV4l2ColorBalanceChannel
+{
   GstColorBalanceChannel parent;
 
   guint32 id;
 } GstV4l2ColorBalanceChannel;
 
-typedef struct _GstV4l2ColorBalanceChannelClass {
+typedef struct _GstV4l2ColorBalanceChannelClass
+{
   GstColorBalanceChannelClass parent;
 } GstV4l2ColorBalanceChannelClass;
 
-GType gst_v4l2_color_balance_channel_get_type   (void);
+GType gst_v4l2_color_balance_channel_get_type (void);
 
-const GList *   gst_v4l2_color_balance_list_channels    (GstV4l2Object * v4l2object);
+const GList *gst_v4l2_color_balance_list_channels (GstV4l2Object * v4l2object);
 
-void            gst_v4l2_color_balance_set_value        (GstV4l2Object * v4l2object,
-                                                         GstColorBalanceChannel * channel,
-                                                         gint value);
+void gst_v4l2_color_balance_set_value (GstV4l2Object * v4l2object,
+    GstColorBalanceChannel * channel, gint value);
 
-gint            gst_v4l2_color_balance_get_value        (GstV4l2Object * v4l2object,
-                                                         GstColorBalanceChannel * channel);
+gint gst_v4l2_color_balance_get_value (GstV4l2Object * v4l2object,
+    GstColorBalanceChannel * channel);
 
 #define GST_IMPLEMENT_V4L2_COLOR_BALANCE_METHODS(Type, interface_as_function)         \
                                                                                       \

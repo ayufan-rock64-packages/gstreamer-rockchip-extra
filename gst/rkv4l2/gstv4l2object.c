@@ -22,16 +22,26 @@
 #include <config.h>
 #endif
 
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <dirent.h>
+#include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #ifdef HAVE_GUDEV
 #include <gudev/gudev.h>
 #endif
 
+#include "rk/rkcommon.h"
 #include "v4l2_calls.h"
 #include "gstv4l2colorbalance.h"
 
@@ -348,7 +358,6 @@ gst_v4l2_object_install_properties_helper (GObjectClass * gobject_class,
       g_param_spec_boolean ("force-aspect-ratio", "Force aspect ratio",
           "When enabled, the pixel aspect ratio will be enforced", TRUE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
 }
 
 void
@@ -423,6 +432,8 @@ gst_v4l2_object_new (GstElement * element,
 
   v4l2object->no_initial_format = FALSE;
 
+  rk_common_new (v4l2object);
+
   return v4l2object;
 }
 
@@ -485,7 +496,6 @@ gst_v4l2_object_prop_to_cid (guint prop_id)
   }
   return cid;
 }
-
 
 gboolean
 gst_v4l2_object_set_property_helper (GstV4l2Object * v4l2object,

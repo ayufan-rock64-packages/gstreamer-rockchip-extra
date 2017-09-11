@@ -42,27 +42,29 @@ typedef struct _GstV4l2Xv GstV4l2Xv;
 #define GST_V4L2_MIN_BUFFERS 2
 
 /* max frame width/height */
-#define GST_V4L2_MAX_SIZE (1<<15) /* 2^15 == 32768 */
+#define GST_V4L2_MAX_SIZE (1<<15)       /* 2^15 == 32768 */
 
 G_BEGIN_DECLS
-
 #define GST_TYPE_V4L2_IO_MODE (gst_v4l2_io_mode_get_type ())
-GType gst_v4l2_io_mode_get_type (void);
+    GType gst_v4l2_io_mode_get_type (void);
 
 #define GST_V4L2_OBJECT(obj) (GstV4l2Object *)(obj)
 
-typedef enum {
-  GST_V4L2_IO_AUTO          = 0,
-  GST_V4L2_IO_RW            = 1,
-  GST_V4L2_IO_MMAP          = 2,
-  GST_V4L2_IO_USERPTR       = 3,
-  GST_V4L2_IO_DMABUF        = 4,
+typedef enum
+{
+  GST_V4L2_IO_AUTO = 0,
+  GST_V4L2_IO_RW = 1,
+  GST_V4L2_IO_MMAP = 2,
+  GST_V4L2_IO_USERPTR = 3,
+  GST_V4L2_IO_DMABUF = 4,
   GST_V4L2_IO_DMABUF_IMPORT = 5
 } GstV4l2IOMode;
 
-typedef gboolean  (*GstV4l2GetInOutFunction)  (GstV4l2Object * v4l2object, gint * input);
-typedef gboolean  (*GstV4l2SetInOutFunction)  (GstV4l2Object * v4l2object, gint input);
-typedef gboolean  (*GstV4l2UpdateFpsFunction) (GstV4l2Object * v4l2object);
+typedef gboolean (*GstV4l2GetInOutFunction) (GstV4l2Object * v4l2object,
+    gint * input);
+typedef gboolean (*GstV4l2SetInOutFunction) (GstV4l2Object * v4l2object,
+    gint input);
+typedef gboolean (*GstV4l2UpdateFpsFunction) (GstV4l2Object * v4l2object);
 
 #define GST_V4L2_WIDTH(o)        (GST_VIDEO_INFO_WIDTH (&(o)->info))
 #define GST_V4L2_HEIGHT(o)       (GST_VIDEO_INFO_HEIGHT (&(o)->info))
@@ -78,10 +80,11 @@ typedef gboolean  (*GstV4l2UpdateFpsFunction) (GstV4l2Object * v4l2object);
 #define GST_V4L2_SET_ACTIVE(o)   ((o)->active = TRUE)
 #define GST_V4L2_SET_INACTIVE(o) ((o)->active = FALSE)
 
-struct _GstV4l2Object {
-  GstElement * element;
+struct _GstV4l2Object
+{
+  GstElement *element;
 
-  enum v4l2_buf_type type;   /* V4L2_BUF_TYPE_VIDEO_CAPTURE, V4L2_BUF_TYPE_VIDEO_OUTPUT */
+  enum v4l2_buf_type type;      /* V4L2_BUF_TYPE_VIDEO_CAPTURE, V4L2_BUF_TYPE_VIDEO_OUTPUT */
 
   /* the video device */
   char *videodev;
@@ -160,8 +163,8 @@ struct _GstV4l2Object {
   gulong xwindow_id;
 
   /* funcs */
-  GstV4l2GetInOutFunction  get_in_out_func;
-  GstV4l2SetInOutFunction  set_in_out_func;
+  GstV4l2GetInOutFunction get_in_out_func;
+  GstV4l2SetInOutFunction set_in_out_func;
   GstV4l2UpdateFpsFunction update_fps_func;
 
   /* Quirks */
@@ -170,9 +173,18 @@ struct _GstV4l2Object {
   /* Allow to skip reading initial format through G_FMT. Some devices
    * just fails if you don't call S_FMT first. (ex: M2M decoders) */
   gboolean no_initial_format;
+
+  /* Rockchip Defined */
+  guint32 rotation;
+  gboolean vflip;
+  gboolean hflip;
+  GstVideoRectangle input_crop;
+  GstVideoRectangle output_crop;
+  gboolean enable_selection;
 };
 
-struct _GstV4l2ObjectClassHelper {
+struct _GstV4l2ObjectClassHelper
+{
   /* probed devices */
   GList *devices;
 };
@@ -194,76 +206,85 @@ GType gst_v4l2_object_get_type (void);
     PROP_CAPTURE_IO_MODE,     \
     PROP_EXTRA_CONTROLS,      \
     PROP_PIXEL_ASPECT_RATIO,  \
-    PROP_FORCE_ASPECT_RATIO
+    PROP_FORCE_ASPECT_RATIO, \
+    PROP_OUTPUT_ROTATION, \
+    PROP_VFLIP, \
+    PROP_HFLIP, \
+    PROP_OUTPUT_CROP, \
+    PROP_INPUT_CROP
 
 /* create/destroy */
-GstV4l2Object*  gst_v4l2_object_new       (GstElement * element,
-                                           enum v4l2_buf_type  type,
-                                           const char * default_device,
-                                           GstV4l2GetInOutFunction get_in_out_func,
-                                           GstV4l2SetInOutFunction set_in_out_func,
-                                           GstV4l2UpdateFpsFunction update_fps_func);
+GstV4l2Object *gst_v4l2_object_new (GstElement * element,
+    enum v4l2_buf_type type,
+    const char *default_device,
+    GstV4l2GetInOutFunction get_in_out_func,
+    GstV4l2SetInOutFunction set_in_out_func,
+    GstV4l2UpdateFpsFunction update_fps_func);
 
-void            gst_v4l2_object_destroy   (GstV4l2Object * v4l2object);
+void gst_v4l2_object_destroy (GstV4l2Object * v4l2object);
 
 /* properties */
 
-void         gst_v4l2_object_install_properties_helper (GObjectClass * gobject_class,
-                                                        const char * default_device);
+void gst_v4l2_object_install_properties_helper (GObjectClass * gobject_class,
+    const char *default_device);
 
-void         gst_v4l2_object_install_m2m_properties_helper (GObjectClass * gobject_class);
+void gst_v4l2_object_install_m2m_properties_helper (GObjectClass *
+    gobject_class);
 
-gboolean     gst_v4l2_object_set_property_helper       (GstV4l2Object * v4l2object,
-                                                        guint prop_id,
-                                                        const GValue * value,
-                                                        GParamSpec * pspec);
-gboolean     gst_v4l2_object_get_property_helper       (GstV4l2Object *v4l2object,
-                                                        guint prop_id, GValue * value,
-                                                        GParamSpec * pspec);
+void gst_v4l2_object_install_rockchip_properties_helper (GObjectClass *
+    gobject_class);
+
+gboolean gst_v4l2_object_set_property_helper (GstV4l2Object * v4l2object,
+    guint prop_id, const GValue * value, GParamSpec * pspec);
+gboolean gst_v4l2_object_get_property_helper (GstV4l2Object * v4l2object,
+    guint prop_id, GValue * value, GParamSpec * pspec);
 /* open/close */
-gboolean     gst_v4l2_object_open            (GstV4l2Object *v4l2object);
-gboolean     gst_v4l2_object_open_shared     (GstV4l2Object *v4l2object, GstV4l2Object *other);
-gboolean     gst_v4l2_object_close           (GstV4l2Object *v4l2object);
+gboolean gst_v4l2_object_open (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_open_shared (GstV4l2Object * v4l2object,
+    GstV4l2Object * other);
+gboolean gst_v4l2_object_close (GstV4l2Object * v4l2object);
 
 /* probing */
 
-GstCaps*      gst_v4l2_object_get_all_caps (void);
+GstCaps *gst_v4l2_object_get_all_caps (void);
 
-GstCaps*      gst_v4l2_object_get_raw_caps (void);
+GstCaps *gst_v4l2_object_get_raw_caps (void);
 
-GstCaps*      gst_v4l2_object_get_codec_caps (void);
+GstCaps *gst_v4l2_object_get_codec_caps (void);
 
-gint          gst_v4l2_object_extrapolate_stride (const GstVideoFormatInfo * finfo,
-                                                  gint plane, gint stride);
+gint gst_v4l2_object_extrapolate_stride (const GstVideoFormatInfo * finfo,
+    gint plane, gint stride);
 
-gboolean      gst_v4l2_object_set_format  (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error *error);
-gboolean      gst_v4l2_object_try_format  (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error *error);
+gboolean gst_v4l2_object_set_format (GstV4l2Object * v4l2object, GstCaps * caps,
+    GstV4l2Error * error);
+gboolean gst_v4l2_object_try_format (GstV4l2Object * v4l2object, GstCaps * caps,
+    GstV4l2Error * error);
 
-gboolean      gst_v4l2_object_caps_equal  (GstV4l2Object * v4l2object, GstCaps * caps);
+gboolean gst_v4l2_object_caps_equal (GstV4l2Object * v4l2object,
+    GstCaps * caps);
 
-gboolean      gst_v4l2_object_unlock      (GstV4l2Object * v4l2object);
-gboolean      gst_v4l2_object_unlock_stop (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_unlock (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_unlock_stop (GstV4l2Object * v4l2object);
 
-gboolean      gst_v4l2_object_stop        (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_stop (GstV4l2Object * v4l2object);
 
-GstCaps *     gst_v4l2_object_probe_caps  (GstV4l2Object * v4l2object,
-                                           GstCaps * filter);
-GstCaps *     gst_v4l2_object_get_caps    (GstV4l2Object * v4l2object,
-                                           GstCaps * filter);
+GstCaps *gst_v4l2_object_probe_caps (GstV4l2Object * v4l2object,
+    GstCaps * filter);
+GstCaps *gst_v4l2_object_get_caps (GstV4l2Object * v4l2object,
+    GstCaps * filter);
 
-gboolean      gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
-                                              GstVideoInfo * info);
+gboolean gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+    GstVideoInfo * info);
 
-gboolean      gst_v4l2_object_set_crop    (GstV4l2Object * obj);
+gboolean gst_v4l2_object_set_crop (GstV4l2Object * obj);
 
-gboolean      gst_v4l2_object_decide_allocation (GstV4l2Object * v4l2object,
-                                                 GstQuery * query);
+gboolean gst_v4l2_object_decide_allocation (GstV4l2Object * v4l2object,
+    GstQuery * query);
 
-gboolean      gst_v4l2_object_propose_allocation (GstV4l2Object * obj,
-                                                  GstQuery * query);
+gboolean gst_v4l2_object_propose_allocation (GstV4l2Object * obj,
+    GstQuery * query);
 
-GstStructure * gst_v4l2_object_v4l2fourcc_to_structure (guint32 fourcc);
+GstStructure *gst_v4l2_object_v4l2fourcc_to_structure (guint32 fourcc);
 
 G_END_DECLS
-
 #endif /* __GST_V4L2_OBJECT_H__ */

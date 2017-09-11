@@ -2,14 +2,23 @@
 #include "config.h"
 #endif
 
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <dirent.h>
+#include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
+#include "rkcommon.h"
 #include "rkrgaconvert.h"
-#include "v4l2_calls.h"
 
 #include <string.h>
 #include <gst/gst-i18n-plugin.h>
@@ -44,8 +53,7 @@ enum
 };
 
 #define gst_rga_convert_parent_class parent_class
-G_DEFINE_ABSTRACT_TYPE (GstRGAConvert, gst_rga_convert,
-    GST_TYPE_BASE_TRANSFORM);
+G_DEFINE_TYPE (GstRGAConvert, gst_rga_convert, GST_TYPE_BASE_TRANSFORM);
 
 static void
 gst_rga_convert_set_property (GObject * object,
@@ -62,12 +70,15 @@ gst_rga_convert_set_property (GObject * object,
       gst_v4l2_object_set_property_helper (self->v4l2capture, prop_id, value,
           pspec);
       break;
-
       /* By default, only set on output */
     default:
       if (!gst_v4l2_object_set_property_helper (self->v4l2output,
               prop_id, value, pspec)) {
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        if (!rk_common_set_property_helper (self->v4l2output,
+                prop_id, value, pspec)) {
+
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        }
       }
       break;
   }
@@ -88,12 +99,15 @@ gst_rga_convert_get_property (GObject * object,
       gst_v4l2_object_get_property_helper (self->v4l2capture, prop_id, value,
           pspec);
       break;
-
       /* By default read from output */
     default:
       if (!gst_v4l2_object_get_property_helper (self->v4l2output,
               prop_id, value, pspec)) {
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        if (!rk_common_get_property_helper (self->v4l2output,
+                prop_id, value, pspec)) {
+
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        }
       }
       break;
   }
@@ -121,6 +135,8 @@ gst_rga_convert_open (GstRGAConvert * self)
 
   if (gst_caps_is_empty (self->probed_srccaps))
     goto no_output_format;
+
+  rk_common_setup_attr_before_stream (self->v4l2output);
 
   return TRUE;
 
@@ -204,6 +220,12 @@ gst_rga_convert_set_caps (GstBaseTransform * trans, GstCaps * incaps,
 
   if (!gst_v4l2_object_set_format (self->v4l2capture, outcaps, &error))
     goto outcaps_failed;
+
+  if (self->v4l2output->enable_selection)
+    rk_common_set_selection (self->v4l2output, &self->v4l2output->input_crop);
+
+  if (self->v4l2output->enable_selection)
+    rk_common_set_selection (self->v4l2capture, &self->v4l2output->output_crop);
 
   /* FIXME implement fallback if crop not supported */
   if (!gst_v4l2_object_set_crop (self->v4l2output))
@@ -866,6 +888,8 @@ gst_rga_convert_prepare_output_buffer (GstBaseTransform * trans,
   GstBufferPool *pool = GST_BUFFER_POOL (self->v4l2output->pool);
   GstFlowReturn ret = GST_FLOW_OK;
   GstBaseTransformClass *bclass = GST_BASE_TRANSFORM_CLASS (parent_class);
+  struct timespec start, end;
+  unsigned long long time_consumed;
 
   if (gst_base_transform_is_passthrough (trans)) {
     GST_DEBUG_OBJECT (self, "Passthrough, no need to do anything");
@@ -894,6 +918,8 @@ gst_rga_convert_prepare_output_buffer (GstBaseTransform * trans,
   if (G_UNLIKELY (ret != GST_FLOW_OK))
     goto beach;
 
+  clock_gettime (CLOCK_MONOTONIC, &start);
+
   do {
     pool = gst_base_transform_get_buffer_pool (trans);
 
@@ -911,6 +937,14 @@ gst_rga_convert_prepare_output_buffer (GstBaseTransform * trans,
     ret = gst_v4l2_buffer_pool_process (GST_V4L2_BUFFER_POOL (pool), outbuf);
 
   } while (ret == GST_V4L2_FLOW_CORRUPTED_BUFFER);
+
+  clock_gettime (CLOCK_MONOTONIC, &end);
+
+  time_consumed = (end.tv_sec - start.tv_sec) * 1000000000ULL;
+  time_consumed += (end.tv_nsec - start.tv_nsec);
+  time_consumed /= 1000;
+
+  GST_INFO_OBJECT (self, "Time cost: %f msecs\n", time_consumed * 1.0 / 1000);
 
   if (ret != GST_FLOW_OK) {
     gst_buffer_unref (*outbuf);
@@ -1039,17 +1073,17 @@ gst_rga_convert_finalize (GObject * object)
 static void
 gst_rga_convert_init (GstRGAConvert * self)
 {
-  // GstRGAConvertClass *klass = GST_RGA_CONVERT_CLASS (g_class);
+  rk_common_v4l2device_find_by_name ("rockchip-rga", self->default_device);
 
-  // self->v4l2output = gst_v4l2_object_new (GST_ELEMENT (self),
-  //     V4L2_BUF_TYPE_VIDEO_OUTPUT, klass->default_device,
-  // gst_v4l2_get_output, gst_v4l2_set_output, NULL);
+  self->v4l2output = gst_v4l2_object_new (GST_ELEMENT (self),
+      V4L2_BUF_TYPE_VIDEO_OUTPUT, self->default_device,
+      gst_v4l2_get_output, gst_v4l2_set_output, NULL);
   self->v4l2output->no_initial_format = TRUE;
   self->v4l2output->keep_aspect = FALSE;
 
-  // self->v4l2capture = gst_v4l2_object_new (GST_ELEMENT (self),
-  //     V4L2_BUF_TYPE_VIDEO_CAPTURE, klass->default_device,
-  // gst_v4l2_get_input, gst_v4l2_set_input, NULL);
+  self->v4l2capture = gst_v4l2_object_new (GST_ELEMENT (self),
+      V4L2_BUF_TYPE_VIDEO_CAPTURE, self->default_device,
+      gst_v4l2_get_input, gst_v4l2_set_input, NULL);
   self->v4l2capture->no_initial_format = TRUE;
   self->v4l2output->keep_aspect = FALSE;
 
@@ -1113,4 +1147,5 @@ gst_rga_convert_class_init (GstRGAConvertClass * klass)
       GST_DEBUG_FUNCPTR (gst_rga_convert_change_state);
 
   gst_v4l2_object_install_m2m_properties_helper (gobject_class);
+  rk_common_install_rockchip_properties_helper (gobject_class);
 }
