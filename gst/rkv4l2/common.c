@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include "rkcommon.h"
+#include "common.h"
 
 #include <gst/gst-i18n-plugin.h>
 
@@ -56,14 +56,6 @@ rk_common_set_selection (GstV4l2Object * v4l2object, GstVideoRectangle * crop)
 }
 
 void
-rk_common_setup_attr_before_stream (GstV4l2Object * v4l2object)
-{
-  rk_common_set_rotation (v4l2object, v4l2object->rotation);
-  rk_common_set_vflip (v4l2object, v4l2object->vflip);
-  rk_common_set_hflip (v4l2object, v4l2object->hflip);
-}
-
-void
 rk_common_v4l2device_find_by_name (const char *name, char *ret_name)
 {
   DIR *dir;
@@ -102,9 +94,7 @@ rk_common_v4l2device_find_by_name (const char *name, char *ret_name)
 void
 rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
 {
-  /**
-   * Rockchip defined
-   */
+  /* common */
   g_object_class_install_property (gobject_class, PROP_OUTPUT_ROTATION,
       g_param_spec_uint ("rotation", "rotation",
           "Output rotation in 90-degree steps", 0, 360, 0,
@@ -116,6 +106,8 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
   g_object_class_install_property (gobject_class, PROP_VFLIP,
       g_param_spec_boolean ("vflip", "vflip",
           "vertical flip", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /* rga */
   g_object_class_install_property (gobject_class, PROP_INPUT_CROP,
       g_param_spec_string ("input-crop", "input-crop",
           " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
@@ -132,8 +124,8 @@ rk_common_set_property_helper (GstV4l2Object * v4l2object,
   char delims[] = "x";
   char *result = NULL;
 
+  /* common */
   switch (prop_id) {
-      /* Rockchip defined */
     case PROP_OUTPUT_ROTATION:
       v4l2object->rotation = g_value_get_uint (value);
       break;
@@ -143,6 +135,12 @@ rk_common_set_property_helper (GstV4l2Object * v4l2object,
     case PROP_HFLIP:
       v4l2object->hflip = g_value_get_boolean (value);
       break;
+    default:
+      break;
+  }
+
+  /* rga */
+  switch (prop_id) {
     case PROP_INPUT_CROP:
       string_val = g_value_dup_string (value);
       result = strtok (string_val, delims);
@@ -170,7 +168,6 @@ rk_common_set_property_helper (GstV4l2Object * v4l2object,
       g_free (string_val);
       break;
     default:
-      return FALSE;
       break;
   }
 
@@ -188,21 +185,18 @@ rk_common_get_property_helper (GstV4l2Object * v4l2object,
     case PROP_OUTPUT_ROTATION:
       g_value_set_uint (value, v4l2object->rotation);
       break;
-    default:
-      break;
-  }
-
-  /* rga */
-  switch (prop_id) {
-    case PROP_OUTPUT_ROTATION:
-      g_value_set_uint (value, v4l2object->rotation);
-      break;
     case PROP_VFLIP:
       g_value_set_boolean (value, v4l2object->vflip);
       break;
     case PROP_HFLIP:
       g_value_set_boolean (value, v4l2object->hflip);
       break;
+    default:
+      break;
+  }
+
+  /* rga */
+  switch (prop_id) {
     case PROP_OUTPUT_CROP:
       snprintf (out, 32, "%dx%dx%dx%d",
           v4l2object->output_crop.x, v4l2object->output_crop.y,

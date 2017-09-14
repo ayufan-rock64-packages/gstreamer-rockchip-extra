@@ -2,15 +2,13 @@ plugin_LTLIBRARIES = libgstrkv4l2.la
 
 libgstrkv4l2_la_SOURCES = v4l2/gstv4l2.c \
 				v4l2/gstv4l2allocator.c \
-				v4l2/gstv4l2colorbalance.c \
-				v4l2/gstv4l2vidorient.c \
 				v4l2/gstv4l2object.c \
 				v4l2/gstv4l2bufferpool.c \
 				v4l2/v4l2_calls.c \
 				v4l2/v4l2-utils.c \
-				rkispsrc.c \
-				rkrgaconvert.c \
-				rkcommon.c
+				ispsrc.c \
+				rgaconvert.c \
+				common.c
 
 libgstrkv4l2_la_CFLAGS =   $(GST_PLUGINS_BASE_CFLAGS) \
 				 $(GST_BASE_CFLAGS) \
@@ -36,12 +34,10 @@ noinst_HEADERS = \
 	ext/videodev2.h \
 	v4l2/gstv4l2allocator.h \
 	v4l2/gstv4l2bufferpool.h \
-	v4l2/gstv4l2vidorient.h \
-	v4l2/gstv4l2colorbalance.h \
 	v4l2/gstv4l2object.h \
 	v4l2/v4l2_calls.h \
 	v4l2/v4l2-utils.h \
-	rkispsrc.h \
-	rkrgaconvert.h \
-	rkcommon.h
+	ispsrc.h \
+	rgaconvert.h \
+	common.h
 

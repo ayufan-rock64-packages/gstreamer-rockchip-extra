@@ -41,9 +41,8 @@
 #include <gudev/gudev.h>
 #endif
 
-#include "rkcommon.h"
+#include "common.h"
 #include "v4l2_calls.h"
-#include "gstv4l2colorbalance.h"
 
 #include "gst/gst-i18n-plugin.h"
 

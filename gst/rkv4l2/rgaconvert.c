@@ -17,8 +17,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "rkcommon.h"
-#include "rkrgaconvert.h"
+#include "common.h"
+#include "rgaconvert.h"
 
 #include <string.h>
 #include <gst/gst-i18n-plugin.h>
@@ -136,7 +136,9 @@ gst_rga_convert_open (GstRGAConvert * self)
   if (gst_caps_is_empty (self->probed_srccaps))
     goto no_output_format;
 
-  rk_common_setup_attr_before_stream (self->v4l2output);
+  rk_common_set_rotation (self->v4l2output, self->v4l2output->rotation);
+  rk_common_set_vflip (self->v4l2output, self->v4l2output->vflip);
+  rk_common_set_hflip (self->v4l2output, self->v4l2output->hflip);
 
   return TRUE;
 

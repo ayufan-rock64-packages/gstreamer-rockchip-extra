@@ -29,7 +29,6 @@ gboolean rk_common_set_hflip (GstV4l2Object * v4l2object, gboolean flip);
 gboolean rk_common_set_selection (GstV4l2Object * v4l2object,
     GstVideoRectangle * crop);
 
-void rk_common_setup_attr_before_stream (GstV4l2Object * v4l2object);
 void rk_common_v4l2device_find_by_name (const char *name, char *ret_name);
 void rk_common_install_rockchip_properties_helper (GObjectClass *
     gobject_class);

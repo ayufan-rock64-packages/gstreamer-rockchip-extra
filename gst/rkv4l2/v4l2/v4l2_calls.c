@@ -34,9 +34,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include "v4l2_calls.h"
-#include "gstv4l2colorbalance.h"
 
-#include "rkispsrc.h"
+#include "ispsrc.h"
 
 #include "gst/gst-i18n-plugin.h"
 
@@ -135,9 +134,6 @@ gst_v4l2_fill_lists (GstV4l2Object * v4l2object)
   control.id = next;
 
   while (TRUE) {
-    GstV4l2ColorBalanceChannel *v4l2channel;
-    GstColorBalanceChannel *channel;
-
     if (!next)
       n++;
 
@@ -191,103 +187,7 @@ gst_v4l2_fill_lists (GstV4l2Object * v4l2object)
       GST_DEBUG_OBJECT (e, "starting control class '%s'", control.name);
       continue;
     }
-
-    switch (control.type) {
-      case V4L2_CTRL_TYPE_INTEGER:
-      case V4L2_CTRL_TYPE_BOOLEAN:
-      case V4L2_CTRL_TYPE_MENU:
-      case V4L2_CTRL_TYPE_INTEGER_MENU:
-      case V4L2_CTRL_TYPE_BITMASK:
-      case V4L2_CTRL_TYPE_BUTTON:{
-        control.name[31] = '\0';
-        gst_v4l2_normalise_control_name ((gchar *) control.name);
-        g_datalist_id_set_data (&v4l2object->controls,
-            g_quark_from_string ((const gchar *) control.name),
-            GINT_TO_POINTER (n));
-        break;
-      }
-      default:
-        GST_DEBUG_OBJECT (e,
-            "Control type for '%s' not suppored for extra controls.",
-            control.name);
-        break;
-    }
-
-    switch (n) {
-      case V4L2_CID_BRIGHTNESS:
-      case V4L2_CID_CONTRAST:
-      case V4L2_CID_SATURATION:
-      case V4L2_CID_HUE:
-      case V4L2_CID_BLACK_LEVEL:
-      case V4L2_CID_AUTO_WHITE_BALANCE:
-      case V4L2_CID_DO_WHITE_BALANCE:
-      case V4L2_CID_RED_BALANCE:
-      case V4L2_CID_BLUE_BALANCE:
-      case V4L2_CID_GAMMA:
-      case V4L2_CID_EXPOSURE:
-      case V4L2_CID_AUTOGAIN:
-      case V4L2_CID_GAIN:
-      case V4L2_CID_SHARPNESS:
-        /* we only handle these for now (why?) */
-        break;
-      case V4L2_CID_HFLIP:
-      case V4L2_CID_VFLIP:
-      case V4L2_CID_PAN_RESET:
-      case V4L2_CID_TILT_RESET:
-        /* not handled here, handled by VideoOrientation interface */
-        control.id++;
-        break;
-      case V4L2_CID_AUDIO_VOLUME:
-      case V4L2_CID_AUDIO_BALANCE:
-      case V4L2_CID_AUDIO_BASS:
-      case V4L2_CID_AUDIO_TREBLE:
-      case V4L2_CID_AUDIO_MUTE:
-      case V4L2_CID_AUDIO_LOUDNESS:
-        /* FIXME: We should implement GstMixer interface instead */
-        /* but let's not be pedantic and make element more useful for now */
-        break;
-      case V4L2_CID_ALPHA_COMPONENT:
-        v4l2object->has_alpha_component = TRUE;
-        break;
-      default:
-        GST_DEBUG_OBJECT (e,
-            "ControlID %s (%x) unhandled, FIXME", control.name, n);
-        control.id++;
-        break;
-    }
-    if (n != control.id)
-      continue;
-
-    GST_DEBUG_OBJECT (e, "Adding ControlID %s (%x)", control.name, n);
-    v4l2channel = g_object_new (GST_TYPE_V4L2_COLOR_BALANCE_CHANNEL, NULL);
-    channel = GST_COLOR_BALANCE_CHANNEL (v4l2channel);
-    channel->label = g_strdup ((const gchar *) control.name);
-    v4l2channel->id = n;
-
-    switch (control.type) {
-      case V4L2_CTRL_TYPE_INTEGER:
-        channel->min_value = control.minimum;
-        channel->max_value = control.maximum;
-        break;
-      case V4L2_CTRL_TYPE_BOOLEAN:
-        channel->min_value = FALSE;
-        channel->max_value = TRUE;
-        break;
-      default:
-        /* FIXME we should find out how to handle V4L2_CTRL_TYPE_BUTTON.
-           BUTTON controls like V4L2_CID_DO_WHITE_BALANCE can just be set (1) or
-           unset (0), but can't be queried */
-        GST_DEBUG_OBJECT (e,
-            "Control with non supported type %s (%x), type=%d",
-            control.name, n, control.type);
-        channel->min_value = channel->max_value = 0;
-        break;
-    }
-
-    v4l2object->colors =
-        g_list_prepend (v4l2object->colors, (gpointer) channel);
   }
-  v4l2object->colors = g_list_reverse (v4l2object->colors);
 
   GST_DEBUG_OBJECT (e, "done");
   return TRUE;
@@ -298,10 +198,6 @@ static void
 gst_v4l2_empty_lists (GstV4l2Object * v4l2object)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "deleting enumerations");
-
-  g_list_foreach (v4l2object->colors, (GFunc) g_object_unref, NULL);
-  g_list_free (v4l2object->colors);
-  v4l2object->colors = NULL;
 
   g_datalist_clear (&v4l2object->controls);
 }

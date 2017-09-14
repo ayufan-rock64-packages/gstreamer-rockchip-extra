@@ -8,11 +8,11 @@
 
 #include <gst/video/gstvideometa.h>
 #include <gst/video/gstvideopool.h>
+#include <gst/video/videoorientation.h>
+#include <gst/video/colorbalance.h>
 
-#include "rkispsrc.h"
-
-#include "gstv4l2colorbalance.h"
-#include "gstv4l2vidorient.h"
+#include "common.h"
+#include "ispsrc.h"
 
 #include "gst/gst-i18n-plugin.h"
 
@@ -37,18 +37,11 @@ enum
 
 static guint gst_v4l2_signals[LAST_SIGNAL] = { 0 };
 
-GST_IMPLEMENT_V4L2_COLOR_BALANCE_METHODS (GstISPSrc, gst_ispsrc);
-GST_IMPLEMENT_V4L2_VIDORIENT_METHODS (GstISPSrc, gst_ispsrc);
-
 static void gst_ispsrc_uri_handler_init (gpointer g_iface, gpointer iface_data);
 
 #define gst_ispsrc_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstISPSrc, gst_ispsrc, GST_TYPE_PUSH_SRC,
-    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_ispsrc_uri_handler_init);
-    G_IMPLEMENT_INTERFACE (GST_TYPE_COLOR_BALANCE,
-        gst_ispsrc_color_balance_interface_init);
-    G_IMPLEMENT_INTERFACE (GST_TYPE_VIDEO_ORIENTATION,
-        gst_ispsrc_video_orientation_interface_init));
+    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER, gst_ispsrc_uri_handler_init));
 
 static void gst_ispsrc_finalize (GstISPSrc * ispsrc);
 

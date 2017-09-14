@@ -43,8 +43,8 @@
 #include "v4l2-utils.h"
 
 #include "gstv4l2object.h"
-#include "rkispsrc.h"
-#include "rkrgaconvert.h"
+#include "ispsrc.h"
+#include "rgaconvert.h"
 
 /* used in v4l2_calls.c and v4l2src_calls.c */
 GST_DEBUG_CATEGORY (v4l2_debug);
