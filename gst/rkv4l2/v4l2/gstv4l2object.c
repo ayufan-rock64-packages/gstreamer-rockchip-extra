@@ -41,7 +41,7 @@
 #include <gudev/gudev.h>
 #endif
 
-#include "rk/rkcommon.h"
+#include "rkcommon.h"
 #include "v4l2_calls.h"
 #include "gstv4l2colorbalance.h"
 

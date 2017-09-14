@@ -36,7 +36,7 @@
 #include "v4l2_calls.h"
 #include "gstv4l2colorbalance.h"
 
-#include "rk/rkispsrc.h"
+#include "rkispsrc.h"
 
 #include "gst/gst-i18n-plugin.h"
 

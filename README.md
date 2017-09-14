@@ -12,7 +12,7 @@ This software has been tested only with kernel after 4.4.
 | rkximagesink    | Video Render (sink) |   kmssink on X11, for overlay display | ximagesink + kmssink |
 | kmssink        |   Video Render (sink)   | overlay display   | [kmssink](https://github.com/GStreamer/gst-plugins-bad/tree/master/sys/kms) |
 | rgaconvert       |    Video Converter   | video colorspace,format,size conversion  | [v4l2 transform](https://github.com/GStreamer/gst-plugins-good/blob/master/sys/v4l2/gstv4l2transform.c) |
-| ~~ispsrc~~        |    Device Sources  |  rockchip isp driver  | [v4l2src](https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-plugins-good/html/gst-plugins-good-plugins-v4l2src.html) |
+| ispsrc        |    Device Sources  |  rockchip isp camera source  | [v4l2src](https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-plugins-good/html/gst-plugins-good-plugins-v4l2src.html) |
 
 ## Usage
 

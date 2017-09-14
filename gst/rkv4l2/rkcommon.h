@@ -20,8 +20,8 @@
 #include <gst/gst.h>
 #include <gst/gstatomicqueue.h>
 
-#include "../gstv4l2object.h"
-#include "../v4l2_calls.h"
+#include "gstv4l2object.h"
+#include "v4l2_calls.h"
 
 gboolean rk_common_set_rotation (GstV4l2Object * v4l2object, gint rotate);
 gboolean rk_common_set_vflip (GstV4l2Object * v4l2object, gboolean flip);

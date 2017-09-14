@@ -183,6 +183,16 @@ rk_common_get_property_helper (GstV4l2Object * v4l2object,
 {
   char out[32];
 
+  /* common */
+  switch (prop_id) {
+    case PROP_OUTPUT_ROTATION:
+      g_value_set_uint (value, v4l2object->rotation);
+      break;
+    default:
+      break;
+  }
+
+  /* rga */
   switch (prop_id) {
     case PROP_OUTPUT_ROTATION:
       g_value_set_uint (value, v4l2object->rotation);
@@ -206,16 +216,23 @@ rk_common_get_property_helper (GstV4l2Object * v4l2object,
       g_value_set_string (value, out);
       break;
     default:
-      return FALSE;
       break;
   }
+
+  /* isp */
+
   return TRUE;
 }
 
 void
 rk_common_new (GstV4l2Object * v4l2object)
 {
+
+  /* common */
   v4l2object->rotation = 0;
+
+
+  /* rga */
   v4l2object->vflip = FALSE;
   v4l2object->hflip = FALSE;
   v4l2object->input_crop.x = 0;
@@ -227,4 +244,8 @@ rk_common_new (GstV4l2Object * v4l2object)
   v4l2object->output_crop.w = 0;
   v4l2object->output_crop.h = 0;
   v4l2object->enable_selection = FALSE;
+
+  /* isp */
+
+
 }
