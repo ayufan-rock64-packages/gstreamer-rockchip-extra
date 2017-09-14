@@ -19,6 +19,9 @@ This software has been tested only with kernel after 4.4.
 ### rkximagesink
 [Pipeline example](https://github.com/rockchip-linux/rk-rootfs-build/blob/master/overlay-debug/usr/local/bin/test_dec-gst.sh)
 
+* `display` : X Display name, for window display : (optional)
+* `connector-id` : DRM connector id, for drm display : (optional)
+
 ### rgaconvert
 [Pipeline example](https://github.com/rockchip-linux/rk-rootfs-build/blob/master/overlay-debug/usr/local/bin/test_rga.sh)
 
@@ -42,5 +45,7 @@ Most of the properties are the same as that of v4l2src, below are rockchip exten
 * `isp-input-crop` : input crop value for isp subdev, should be "left"x"top"x"width"x"height" : (optional)
 * `sensor-crop` : crop value for sensor, should be "left"x"top"x"width"x"height" : (optional)
 
-isp v4l2 dev struct:<br>
+isp v4l2 dev struct:
+```
 sp/mp stream vdev -> isp subdev -> mipiphy subdev -> sensor subdev
+```
