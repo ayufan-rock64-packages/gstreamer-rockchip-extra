@@ -35,11 +35,6 @@ Most of the properties are the same as that of v4l2 transform, below are rockchi
 ### rkcamsrc
 [Pipeline example](https://github.com/rockchip-linux/rk-rootfs-build/blob/master/overlay-debug/usr/local/bin/test_camera.sh)
 
-[subdev topology](https://linuxtv.org/downloads/v4l-dvb-apis/uapi/v4l/dev-subdev.html):
-```
-sp/mp stream vdev -> isp subdev -> mipiphy subdev -> sensor subdev
-```
-
 Most of the properties are the same as that of v4l2src, below are rockchip extend properties:
 * `disable-autoconf` : If true, this plugin won't modify media-enities, the other application should be responsible to it : (default : false)
 * `disable-3A` : If false, 3A will be enabled, it will read IQ params from `/etc/cam_iq.xml` : (default : true)
@@ -48,3 +43,6 @@ Most of the properties are the same as that of v4l2src, below are rockchip exten
 * `input-crop` : input crop value for isp subdev, should be "left"x"top"x"width"x"height" : (optional)
 * `sensor-crop` : crop value for sensor, should be "left"x"top"x"width"x"height" : (optional)
 * `sensor-name` : active sensor's name : (optional)
+
+[Subdev topology](https://linuxtv.org/downloads/v4l-dvb-apis/uapi/v4l/dev-subdev.html):
+`sp/mp stream vdev -> isp subdev -> mipiphy subdev -> sensor subdev`
