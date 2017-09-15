@@ -364,6 +364,9 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
   struct v4l2_rect rect;
   GstVideoRectangle crop;
 
+  if (rkcamsrc->v4l2object->disable_autoconf)
+    return;
+
   if (rkcamsrc->v4l2object->dcrop.w != 0) {
     rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
         &rkcamsrc->v4l2object->dcrop, FALSE);
