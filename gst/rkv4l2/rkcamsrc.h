@@ -21,39 +21,45 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __GST_ISPSRC_H__
-#define __GST_ISPSRC_H__
+#ifndef __GST_RKCAMSRC_H__
+#define __GST_RKCAMSRC_H__
 
 #include <gstv4l2object.h>
 #include <gstv4l2bufferpool.h>
 
-GST_DEBUG_CATEGORY_EXTERN (ispsrc_debug);
+GST_DEBUG_CATEGORY_EXTERN (rkcamsrc_debug);
 
 G_BEGIN_DECLS
-#define GST_TYPE_ISPSRC \
-  (gst_ispsrc_get_type())
-#define GST_ISPSRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_ISPSRC,GstISPSrc))
-#define GST_ISPSRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_ISPSRC,GstISPSrcClass))
-#define GST_IS_ISPSRC(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_ISPSRC))
-#define GST_IS_ISPSRC_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_ISPSRC))
-typedef struct _GstISPSrc GstISPSrc;
-typedef struct _GstISPSrcClass GstISPSrcClass;
+#define GST_TYPE_RKCAMSRC \
+  (gst_rkcamsrc_get_type())
+#define GST_RKCAMSRC(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_RKCAMSRC,GstRKCamSrc))
+#define GST_RKCAMSRC_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_RKCAMSRC,GstRKCamSrcClass))
+#define GST_IS_RKCAMSRC(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_RKCAMSRC))
+#define GST_IS_RKCAMSRC_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_RKCAMSRC))
+typedef struct _GstRKCamSrc GstRKCamSrc;
+typedef struct _GstRKCamSrcClass GstRKCamSrcClass;
+
+#define ISP_MAX_SENSOR 32
 
 /**
- * GstISPSrc:
+ * GstRKCamSrc:
  *
  * Opaque object.
  */
-struct _GstISPSrc
+struct _GstRKCamSrc
 {
   GstPushSrc pushsrc;
 
   /*< private > */
   GstV4l2Object *v4l2object;
+  guint media_index;
+  struct media_entity *isp_subdev;
+  struct media_entity *phy_subdev;
+  struct media_entity *sensor_subdev;
 
   guint64 offset;
 
@@ -69,14 +75,14 @@ struct _GstISPSrc
   gboolean has_bad_timestamp;
 };
 
-struct _GstISPSrcClass
+struct _GstRKCamSrcClass
 {
   GstPushSrcClass parent_class;
 
   GList *v4l2_class_devices;
 };
 
-GType gst_ispsrc_get_type (void);
+GType gst_rkcamsrc_get_type (void);
 
 G_END_DECLS
-#endif /* __GST_ISPSrc_H__ */
+#endif /* __GST_RKCAMSRC_H__ */

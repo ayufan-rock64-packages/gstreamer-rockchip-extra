@@ -35,7 +35,7 @@
 #include <unistd.h>
 #include "v4l2_calls.h"
 
-#include "ispsrc.h"
+#include "rkcamsrc.h"
 
 #include "gst/gst-i18n-plugin.h"
 
@@ -284,7 +284,7 @@ gst_v4l2_open (GstV4l2Object * v4l2object)
     goto error;
 
   /* do we need to be a capture device? */
-  if (GST_IS_ISPSRC (v4l2object->element) &&
+  if (GST_IS_RKCAMSRC (v4l2object->element) &&
       !(v4l2object->device_caps & (V4L2_CAP_VIDEO_CAPTURE |
               V4L2_CAP_VIDEO_CAPTURE_MPLANE)))
     goto not_capture;

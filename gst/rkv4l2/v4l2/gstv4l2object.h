@@ -24,6 +24,8 @@
 #ifndef __GST_V4L2_OBJECT_H__
 #define __GST_V4L2_OBJECT_H__
 
+#include "common.h"
+
 #include "ext/videodev2.h"
 #include "v4l2-utils.h"
 
@@ -174,13 +176,7 @@ struct _GstV4l2Object
    * just fails if you don't call S_FMT first. (ex: M2M decoders) */
   gboolean no_initial_format;
 
-  /* Rockchip Defined */
-  guint32 rotation;
-  gboolean vflip;
-  gboolean hflip;
-  GstVideoRectangle input_crop;
-  GstVideoRectangle output_crop;
-  gboolean enable_selection;
+  RK_V4L2_OBJECT
 };
 
 struct _GstV4l2ObjectClassHelper
@@ -207,11 +203,7 @@ GType gst_v4l2_object_get_type (void);
     PROP_EXTRA_CONTROLS,      \
     PROP_PIXEL_ASPECT_RATIO,  \
     PROP_FORCE_ASPECT_RATIO, \
-    PROP_OUTPUT_ROTATION, \
-    PROP_VFLIP, \
-    PROP_HFLIP, \
-    PROP_OUTPUT_CROP, \
-    PROP_INPUT_CROP
+    RK_V4L2_OBJECT_PROPS
 
 /* create/destroy */
 GstV4l2Object *gst_v4l2_object_new (GstElement * element,

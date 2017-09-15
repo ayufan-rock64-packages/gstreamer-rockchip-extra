@@ -6,7 +6,9 @@ libgstrkv4l2_la_SOURCES = v4l2/gstv4l2.c \
 				v4l2/gstv4l2bufferpool.c \
 				v4l2/v4l2_calls.c \
 				v4l2/v4l2-utils.c \
-				ispsrc.c \
+				ext/mediactl.c \
+				ext/v4l2subdev.c \
+				rkcamsrc.c \
 				rgaconvert.c \
 				common.c
 
@@ -28,6 +30,9 @@ libgstrkv4l2_la_LIBADD =   $(GST_PLUGINS_BASE_LIBS) \
 				 $(RKV4L2_LIBS)
 
 noinst_HEADERS = \
+	ext/mediactl-priv.h \
+	ext/mediactl.h \
+	ext/v4l2subdev.h \
 	ext/types-compat.h \
 	ext/v4l2-common.h \
 	ext/v4l2-controls.h \
@@ -37,7 +42,7 @@ noinst_HEADERS = \
 	v4l2/gstv4l2object.h \
 	v4l2/v4l2_calls.h \
 	v4l2/v4l2-utils.h \
-	ispsrc.h \
+	rkcamsrc.h \
 	rgaconvert.h \
 	common.h
 

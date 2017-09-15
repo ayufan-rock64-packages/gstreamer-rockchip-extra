@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "common.h"
+#include "v4l2_calls.h"
 #include "rgaconvert.h"
 
 #include <string.h>
@@ -136,9 +137,9 @@ gst_rga_convert_open (GstRGAConvert * self)
   if (gst_caps_is_empty (self->probed_srccaps))
     goto no_output_format;
 
-  rk_common_set_rotation (self->v4l2output, self->v4l2output->rotation);
-  rk_common_set_vflip (self->v4l2output, self->v4l2output->vflip);
-  rk_common_set_hflip (self->v4l2output, self->v4l2output->hflip);
+  rk_common_v4l2_set_rotation (self->v4l2output, self->v4l2output->rotation);
+  rk_common_v4l2_set_vflip (self->v4l2output, self->v4l2output->vflip);
+  rk_common_v4l2_set_hflip (self->v4l2output, self->v4l2output->hflip);
 
   return TRUE;
 
@@ -223,11 +224,13 @@ gst_rga_convert_set_caps (GstBaseTransform * trans, GstCaps * incaps,
   if (!gst_v4l2_object_set_format (self->v4l2capture, outcaps, &error))
     goto outcaps_failed;
 
-  if (self->v4l2output->enable_selection)
-    rk_common_set_selection (self->v4l2output, &self->v4l2output->input_crop);
+  if (self->v4l2output->input_crop.w != 0)
+    rk_common_v4l2_set_selection (self->v4l2output,
+        &self->v4l2output->input_crop, FALSE);
 
-  if (self->v4l2output->enable_selection)
-    rk_common_set_selection (self->v4l2capture, &self->v4l2output->output_crop);
+  if (self->v4l2output->output_crop.w != 0)
+    rk_common_v4l2_set_selection (self->v4l2capture,
+        &self->v4l2output->output_crop, TRUE);
 
   /* FIXME implement fallback if crop not supported */
   if (!gst_v4l2_object_set_crop (self->v4l2output))

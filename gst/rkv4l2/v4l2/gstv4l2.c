@@ -43,7 +43,8 @@
 #include "v4l2-utils.h"
 
 #include "gstv4l2object.h"
-#include "ispsrc.h"
+#include "common.h"
+#include "rkcamsrc.h"
 #include "rgaconvert.h"
 
 /* used in v4l2_calls.c and v4l2src_calls.c */
@@ -64,12 +65,15 @@ plugin_init (GstPlugin * plugin)
   gst_plugin_add_dependency (plugin,
       NULL, paths, names, GST_PLUGIN_DEPENDENCY_FLAG_FILE_NAME_IS_PREFIX);
 
-  if (!gst_element_register (plugin, "ispsrc", GST_RANK_PRIMARY,
-          GST_TYPE_ISPSRC) ||
+  if (!gst_element_register (plugin, "rkcamsrc", GST_RANK_PRIMARY,
+          GST_TYPE_RKCAMSRC) ||
       !gst_element_register (plugin, "rgaconvert", GST_RANK_NONE,
           GST_TYPE_RGACONVERT)
       )
     return FALSE;
+
+  /* TODO: will it released? */
+  rk_common_media_init_global_data ();
 
   return TRUE;
 }
