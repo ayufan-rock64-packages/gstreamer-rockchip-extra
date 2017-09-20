@@ -26,6 +26,8 @@
 
 #include "gstv4l2object.h"
 
+#undef HAVE_LIBV4L2
+
 #ifdef HAVE_LIBV4L2
 #  include <libv4l2.h>
 #else
