@@ -362,26 +362,47 @@ static void
 gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
 {
   struct v4l2_rect rect;
-  GstVideoRectangle crop;
 
   if (rkcamsrc->v4l2object->disable_autoconf)
     return;
 
-  if (rkcamsrc->v4l2object->dcrop.w != 0) {
-    rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
-        &rkcamsrc->v4l2object->dcrop, FALSE);
-  } else {
-    v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
-        RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS,
-        V4L2_SUBDEV_FORMAT_ACTIVE);
-
-    v4l2_rect_to_gst_rect (&crop, &rect);
-    rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
-        &rkcamsrc->v4l2object->dcrop, FALSE);
+  if (rkcamsrc->v4l2object->sensor_crop.w != 0) {
+    gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->sensor_crop);
+    v4l2_subdev_set_selection (rkcamsrc->sensor_subdev, &rect,
+        RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
   }
 
+  /* input crop */
+  v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
+      RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS, V4L2_SUBDEV_FORMAT_ACTIVE);
   if (rkcamsrc->v4l2object->input_crop.w != 0) {
-    gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->input_crop);
+    if (rect.width <
+        rkcamsrc->v4l2object->input_crop.w + rkcamsrc->v4l2object->input_crop.x
+        || rect.height <
+        rkcamsrc->v4l2object->input_crop.h + rkcamsrc->v4l2object->input_crop.y)
+      printf ("ERROR: input crop is bigger than sensor image!\n");
+    else
+      gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->input_crop);
+
+    v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
+        V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
+  } else {
+    v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
+        V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
+  }
+
+  /* output crop */
+  if (rkcamsrc->v4l2object->output_crop.w != 0) {
+    if (rect.width <
+        rkcamsrc->v4l2object->output_crop.w +
+        rkcamsrc->v4l2object->output_crop.x
+        || rect.height <
+        rkcamsrc->v4l2object->output_crop.h +
+        rkcamsrc->v4l2object->output_crop.y)
+      printf ("ERROR: output crop is bigger than input crop!\n");
+    else
+      gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->output_crop);
+
     v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect,
         RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SEL_TGT_CROP,
         V4L2_SUBDEV_FORMAT_ACTIVE);
@@ -394,22 +415,25 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
         V4L2_SUBDEV_FORMAT_ACTIVE);
   }
 
-  if (rkcamsrc->v4l2object->output_crop.w != 0) {
-    gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->output_crop);
-    v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
-        V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
+  /* dcrop */
+  if (rkcamsrc->v4l2object->dcrop.w != 0) {
+    if (rect.width <
+        rkcamsrc->v4l2object->dcrop.w + rkcamsrc->v4l2object->dcrop.x
+        || rect.height <
+        rkcamsrc->v4l2object->dcrop.h + rkcamsrc->v4l2object->dcrop.y) {
+      printf ("ERROR: dcrop is bigger than output crop!\n");
+      v4l2_rect_to_gst_rect (&rkcamsrc->v4l2object->dcrop, &rect);
+    }
+    rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
+        &rkcamsrc->v4l2object->dcrop, FALSE);
   } else {
     v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
         RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS,
         V4L2_SUBDEV_FORMAT_ACTIVE);
-    v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
-        V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
-  }
 
-  if (rkcamsrc->v4l2object->sensor_crop.w != 0) {
-    gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->sensor_crop);
-    v4l2_subdev_set_selection (rkcamsrc->sensor_subdev, &rect,
-        RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
+    v4l2_rect_to_gst_rect (&rkcamsrc->v4l2object->dcrop, &rect);
+    rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
+        &rkcamsrc->v4l2object->dcrop, FALSE);
   }
 }
 
