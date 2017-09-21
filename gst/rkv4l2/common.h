@@ -50,7 +50,8 @@ enum mipi_dphy_sy_pads
     PROP_OUTPUT_CROP, \
     PROP_INPUT_CROP, \
     PROP_DISABLE_AUTOCONF, \
-    PROP_DCROP, \
+    PROP_VIDEO_CROP, \
+    PROP_VIDEO_COMPOSE, \
     PROP_SENSOR_CROP, \
     PROP_SENSOR_NAME, \
     PROP_DISABLE_3A
@@ -67,7 +68,8 @@ enum mipi_dphy_sy_pads
   gboolean disable_autoconf; \
   gboolean disable_3A; \
   gchar *sensor_name; \
-  GstVideoRectangle dcrop; \
+  GstVideoRectangle video_crop; \
+  GstVideoRectangle video_compose; \
   GstVideoRectangle sensor_crop;
 
 struct _GstV4l2Object;
@@ -76,7 +78,7 @@ struct _GstV4l2Object;
 gboolean rk_common_v4l2device_find_by_name (const char *name, char *ret_name);
 
 inline void
-gst_rect_to_v4l2_rect (struct v4l2_rect *rect, GstVideoRectangle * gst_rect)
+gst_rect_to_v4l2_rect (GstVideoRectangle * gst_rect, struct v4l2_rect *rect)
 {
   rect->left = gst_rect->x;
   rect->top = gst_rect->y;
@@ -85,7 +87,7 @@ gst_rect_to_v4l2_rect (struct v4l2_rect *rect, GstVideoRectangle * gst_rect)
 }
 
 inline void
-v4l2_rect_to_gst_rect (GstVideoRectangle * gst_rect, struct v4l2_rect *rect)
+v4l2_rect_to_gst_rect (struct v4l2_rect *rect, GstVideoRectangle * gst_rect)
 {
   gst_rect->x = rect->left;
   gst_rect->y = rect->top;
@@ -101,7 +103,7 @@ gboolean rk_common_v4l2_set_vflip (struct _GstV4l2Object *v4l2object,
 gboolean rk_common_v4l2_set_hflip (struct _GstV4l2Object *v4l2object,
     gboolean flip);
 gboolean rk_common_v4l2_set_selection (struct _GstV4l2Object *v4l2object,
-    GstVideoRectangle * crop, gboolean compose);
+    struct v4l2_rect *rect, gboolean compose);
 
 // prop
 void rk_common_install_rockchip_properties_helper (GObjectClass *

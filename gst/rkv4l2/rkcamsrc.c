@@ -367,7 +367,7 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
     return;
 
   if (rkcamsrc->v4l2object->sensor_crop.w != 0) {
-    gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->sensor_crop);
+    gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->sensor_crop, &rect);
     v4l2_subdev_set_selection (rkcamsrc->sensor_subdev, &rect,
         RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
   }
@@ -382,7 +382,7 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
         rkcamsrc->v4l2object->input_crop.h + rkcamsrc->v4l2object->input_crop.y)
       printf ("ERROR: input crop is bigger than sensor image!\n");
     else
-      gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->input_crop);
+      gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->input_crop, &rect);
 
     v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
         V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
@@ -401,7 +401,7 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
         rkcamsrc->v4l2object->output_crop.y)
       printf ("ERROR: output crop is bigger than input crop!\n");
     else
-      gst_rect_to_v4l2_rect (&rect, &rkcamsrc->v4l2object->output_crop);
+      gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->output_crop, &rect);
 
     v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect,
         RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SEL_TGT_CROP,
@@ -415,25 +415,42 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
         V4L2_SUBDEV_FORMAT_ACTIVE);
   }
 
-  /* dcrop */
-  if (rkcamsrc->v4l2object->dcrop.w != 0) {
+  /* video_crop */
+  if (rkcamsrc->v4l2object->video_crop.w != 0) {
     if (rect.width <
-        rkcamsrc->v4l2object->dcrop.w + rkcamsrc->v4l2object->dcrop.x
+        rkcamsrc->v4l2object->video_crop.w +
+        rkcamsrc->v4l2object->video_crop.x
         || rect.height <
-        rkcamsrc->v4l2object->dcrop.h + rkcamsrc->v4l2object->dcrop.y) {
-      printf ("ERROR: dcrop is bigger than output crop!\n");
-      v4l2_rect_to_gst_rect (&rkcamsrc->v4l2object->dcrop, &rect);
-    }
-    rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
-        &rkcamsrc->v4l2object->dcrop, FALSE);
+        rkcamsrc->v4l2object->video_crop.h + rkcamsrc->v4l2object->video_crop.y)
+      printf ("ERROR: video_crop is bigger than output crop!\n");
+    else
+      gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->video_crop, &rect);
+
+    rk_common_v4l2_set_selection (rkcamsrc->v4l2object, &rect, FALSE);
   } else {
     v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
         RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS,
         V4L2_SUBDEV_FORMAT_ACTIVE);
+    rk_common_v4l2_set_selection (rkcamsrc->v4l2object, &rect, FALSE);
+  }
 
-    v4l2_rect_to_gst_rect (&rkcamsrc->v4l2object->dcrop, &rect);
-    rk_common_v4l2_set_selection (rkcamsrc->v4l2object,
-        &rkcamsrc->v4l2object->dcrop, FALSE);
+  /* video_compose */
+  if (rkcamsrc->v4l2object->video_compose.w != 0) {
+    if (rect.width <
+        rkcamsrc->v4l2object->video_compose.w +
+        rkcamsrc->v4l2object->video_compose.x
+        || rect.height <
+        rkcamsrc->v4l2object->video_compose.h +
+        rkcamsrc->v4l2object->video_compose.y) {
+      printf ("ERROR: video_compose is bigger than video_crop!\n");
+      gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->video_crop, &rect);
+    }
+    rk_common_v4l2_set_selection (rkcamsrc->v4l2object, &rect, TRUE);
+  } else {
+    v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
+        RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_COMPOSE_BOUNDS,
+        V4L2_SUBDEV_FORMAT_ACTIVE);
+    rk_common_v4l2_set_selection (rkcamsrc->v4l2object, &rect, TRUE);
   }
 }
 

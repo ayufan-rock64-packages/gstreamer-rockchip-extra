@@ -38,7 +38,8 @@ Most of the properties are the same as that of v4l2 transform, below are rockchi
 Most of the properties are the same as that of v4l2src, below are rockchip extend properties:
 * `disable-autoconf` : If true, this plugin won't modify media-enities, the other application should be responsible to it : (default : false)
 * `disable-3A` : If false, 3A will be enabled, it will read IQ params from `/etc/cam_iq.xml` : (default : true)
-* `dcrop` : crop value for stream dev, should be "left"x"top"x"width"x"height" : (optional)
+* `video-compose` : compose value for stream dev, should be "left"x"top"x"width"x"height" : (optional)
+* `video-crop` : crop value for stream dev, should be "left"x"top"x"width"x"height" : (optional)
 * `output-crop` : output crop value for isp subdev, should be "left"x"top"x"width"x"height" : (optional)
 * `input-crop` : input crop value for isp subdev, should be "left"x"top"x"width"x"height" : (optional)
 * `sensor-crop` : crop value for sensor, should be "left"x"top"x"width"x"height" : (optional)

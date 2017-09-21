@@ -95,16 +95,13 @@ rk_common_v4l2_set_hflip (GstV4l2Object * v4l2object, gboolean flip)
 
 gboolean
 rk_common_v4l2_set_selection (GstV4l2Object * v4l2object,
-    GstVideoRectangle * crop, gboolean compose)
+    struct v4l2_rect * rect, gboolean compose)
 {
   struct v4l2_selection s = { 0 };
 
   s.type = v4l2object->type;
   s.target = compose ? V4L2_SEL_TGT_COMPOSE : V4L2_SEL_TGT_CROP;
-  s.r.left = crop->x;
-  s.r.top = crop->y;
-  s.r.width = crop->w;
-  s.r.height = crop->h;
+  s.r = *rect;
 
   GST_DEBUG_OBJECT (v4l2object->element,
       "Desired cropping left %u, top %u, size %ux%u", s.r.left, s.r.top,
@@ -114,6 +111,8 @@ rk_common_v4l2_set_selection (GstV4l2Object * v4l2object,
     GST_WARNING_OBJECT (v4l2object->element, "VIDIOC_S_SELECTION failed");
     return FALSE;
   }
+
+  *rect = s.r;
 
   return TRUE;
 }
@@ -157,8 +156,11 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
   g_object_class_install_property (gobject_class, PROP_SENSOR_NAME,
       g_param_spec_uint ("sensor-name", "active sensor name",
           " ", 0, 255, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, PROP_DCROP,
-      g_param_spec_string ("dcrop", "dcrop",
+  g_object_class_install_property (gobject_class, PROP_VIDEO_COMPOSE,
+      g_param_spec_string ("video-compose", "video compose",
+          " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_VIDEO_CROP,
+      g_param_spec_string ("video-crop", "video crop",
           " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_SENSOR_CROP,
       g_param_spec_string ("sensor-crop", "sensor-crop",
@@ -213,9 +215,14 @@ rk_common_set_property_helper (GstV4l2Object * v4l2object,
     case PROP_SENSOR_NAME:
       v4l2object->sensor_name = g_value_dup_string (value);
       break;
-    case PROP_DCROP:
+    case PROP_VIDEO_COMPOSE:
       string_val = g_value_dup_string (value);
-      rk_common_input_string_to_rect (string_val, &v4l2object->dcrop);
+      rk_common_input_string_to_rect (string_val, &v4l2object->video_compose);
+      g_free (string_val);
+      break;
+    case PROP_VIDEO_CROP:
+      string_val = g_value_dup_string (value);
+      rk_common_input_string_to_rect (string_val, &v4l2object->video_crop);
       g_free (string_val);
       break;
     case PROP_SENSOR_CROP:
@@ -280,10 +287,16 @@ rk_common_get_property_helper (GstV4l2Object * v4l2object,
     case PROP_SENSOR_NAME:
       g_value_set_string (value, v4l2object->sensor_name);
       break;
-    case PROP_DCROP:
+    case PROP_VIDEO_COMPOSE:
       snprintf (out, 32, "%dx%dx%dx%d",
-          v4l2object->dcrop.x, v4l2object->dcrop.y,
-          v4l2object->dcrop.w, v4l2object->dcrop.h);
+          v4l2object->video_compose.x, v4l2object->video_compose.y,
+          v4l2object->video_compose.w, v4l2object->video_compose.h);
+      g_value_set_string (value, out);
+      break;
+    case PROP_VIDEO_CROP:
+      snprintf (out, 32, "%dx%dx%dx%d",
+          v4l2object->video_crop.x, v4l2object->video_crop.y,
+          v4l2object->video_crop.w, v4l2object->video_crop.h);
       g_value_set_string (value, out);
       break;
     case PROP_SENSOR_CROP:
@@ -315,7 +328,8 @@ rk_common_new (GstV4l2Object * v4l2object)
   v4l2object->disable_3A = TRUE;
   v4l2object->disable_autoconf = FALSE;
   v4l2object->sensor_name = NULL;
-  memset (&v4l2object->dcrop, 0, sizeof (GstVideoRectangle));
+  memset (&v4l2object->video_compose, 0, sizeof (GstVideoRectangle));
+  memset (&v4l2object->video_crop, 0, sizeof (GstVideoRectangle));
   memset (&v4l2object->sensor_crop, 0, sizeof (GstVideoRectangle));
 }
 
