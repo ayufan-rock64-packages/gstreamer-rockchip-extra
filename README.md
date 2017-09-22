@@ -44,6 +44,3 @@ Most of the properties are the same as that of v4l2src, below are rockchip exten
 * `input-crop` : input crop value for isp subdev, should be "left"x"top"x"width"x"height" : (optional)
 * `sensor-crop` : crop value for sensor, should be "left"x"top"x"width"x"height" : (optional)
 * `sensor-name` : active sensor's name : (optional)
-
-[Subdev topology](https://linuxtv.org/downloads/v4l-dvb-apis/uapi/v4l/dev-subdev.html):
-`sp/mp stream vdev -> isp subdev -> mipiphy subdev -> sensor subdev`
