@@ -1474,7 +1474,6 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
     switch (GST_VIDEO_INFO_FORMAT (info)) {
       case GST_VIDEO_FORMAT_I420:
         fourcc = V4L2_PIX_FMT_YUV420;
-        fourcc_nc = V4L2_PIX_FMT_YUV420M;
         break;
       case GST_VIDEO_FORMAT_YUY2:
         fourcc = V4L2_PIX_FMT_YUYV;
@@ -1493,22 +1492,18 @@ gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
         break;
       case GST_VIDEO_FORMAT_NV12:
         fourcc = V4L2_PIX_FMT_NV12;
-        fourcc_nc = V4L2_PIX_FMT_NV12M;
         break;
       case GST_VIDEO_FORMAT_NV12_64Z32:
         fourcc_nc = V4L2_PIX_FMT_NV12MT;
         break;
       case GST_VIDEO_FORMAT_NV21:
         fourcc = V4L2_PIX_FMT_NV21;
-        fourcc_nc = V4L2_PIX_FMT_NV21M;
         break;
       case GST_VIDEO_FORMAT_NV16:
         fourcc = V4L2_PIX_FMT_NV16;
-        fourcc_nc = V4L2_PIX_FMT_NV16M;
         break;
       case GST_VIDEO_FORMAT_NV61:
         fourcc = V4L2_PIX_FMT_NV61;
-        fourcc_nc = V4L2_PIX_FMT_NV61M;
         break;
       case GST_VIDEO_FORMAT_NV24:
         fourcc = V4L2_PIX_FMT_NV24;
