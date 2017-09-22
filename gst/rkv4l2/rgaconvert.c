@@ -232,7 +232,7 @@ gst_rga_convert_set_caps (GstBaseTransform * trans, GstCaps * incaps,
 
   if (self->v4l2output->output_crop.w != 0) {
     gst_rect_to_v4l2_rect (&self->v4l2output->output_crop, &rect);
-    rk_common_v4l2_set_selection (self->v4l2output, &rect, FALSE);
+    rk_common_v4l2_set_selection (self->v4l2output, &rect, TRUE);
   }
 
   /* FIXME implement fallback if crop not supported */
