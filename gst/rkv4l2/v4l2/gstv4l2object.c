@@ -47,6 +47,7 @@
 #include "gst/gst-i18n-plugin.h"
 
 #include <gst/video/video.h>
+#include <gst/gstutils.h>
 
 GST_DEBUG_CATEGORY_EXTERN (v4l2_debug);
 #define GST_CAT_DEFAULT v4l2_debug
@@ -2972,6 +2973,15 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
   height = GST_VIDEO_INFO_HEIGHT (&info);
   fps_n = GST_VIDEO_INFO_FPS_N (&info);
   fps_d = GST_VIDEO_INFO_FPS_D (&info);
+
+  if (v4l2object->vpu_stride) {
+    v4l2object->input_crop.x = 0;
+    v4l2object->input_crop.y = 0;
+    v4l2object->input_crop.w = width;
+    v4l2object->input_crop.h = height;
+    width = GST_ROUND_UP_N (width, 32);
+    height = GST_ROUND_UP_N (height, 32);
+  }
 
   /* if encoded format (GST_VIDEO_INFO_N_PLANES return 0)
    * or if contiguous is prefered */

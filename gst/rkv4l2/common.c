@@ -144,7 +144,10 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
   g_object_class_install_property (gobject_class, PROP_VFLIP,
       g_param_spec_boolean ("vflip", "vflip",
           "vertical flip", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
+  g_object_class_install_property (gobject_class, PROP_VPU_STRIDE,
+      g_param_spec_boolean ("vpu-stride", "vpu stride",
+          "Use 4 alignment for input height, to handle VPU buffer correctly.",
+          FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /* isp */
   g_object_class_install_property (gobject_class, PROP_DISABLE_3A,
@@ -199,6 +202,9 @@ rk_common_set_property_helper (GstV4l2Object * v4l2object,
       break;
     case PROP_HFLIP:
       v4l2object->hflip = g_value_get_boolean (value);
+      break;
+    case PROP_VPU_STRIDE:
+      v4l2object->vpu_stride = g_value_get_boolean (value);
       break;
     default:
       break;
@@ -272,6 +278,9 @@ rk_common_get_property_helper (GstV4l2Object * v4l2object,
     case PROP_HFLIP:
       g_value_set_boolean (value, v4l2object->hflip);
       break;
+    case PROP_VPU_STRIDE:
+      g_value_set_boolean (value, v4l2object->vpu_stride);
+      break;
     default:
       break;
   }
@@ -323,6 +332,7 @@ rk_common_new (GstV4l2Object * v4l2object)
   v4l2object->vflip = FALSE;
   v4l2object->hflip = FALSE;
   v4l2object->rotation = 0;
+  v4l2object->vpu_stride = FALSE;
 
   /* isp */
   v4l2object->disable_3A = TRUE;

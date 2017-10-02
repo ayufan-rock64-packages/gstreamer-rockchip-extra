@@ -31,6 +31,8 @@ Most of the properties are the same as that of v4l2 transform, below are rockchi
 * `vflip` : ve sink pad rtical flip : (default : false)
 * `input-crop` : [Selection-crop](https://01.org/linuxgraphics/gfx-docs/drm/media/uapi/v4l/selection-api-003.html), should be "left"x"top"x"width"x"height": (optional)
 * `output-crop` : [Selection-compose](https://01.org/linuxgraphics/gfx-docs/drm/media/uapi/v4l/selection-api-003.html), should be "left"x"top"x"width"x"height" : (optional) 
+* `vpu-stride` : Use 4 alignment for input height, to handle VPU buffer correctly. Note if it's enabled, input-crop are unavailable.  : (default : false) 
+
 
 ### rkcamsrc
 [Pipeline example](https://github.com/rockchip-linux/rk-rootfs-build/blob/master/overlay-debug/usr/local/bin/test_camera.sh)

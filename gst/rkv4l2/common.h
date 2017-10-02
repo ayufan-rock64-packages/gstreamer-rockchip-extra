@@ -44,6 +44,7 @@ enum mipi_dphy_sy_pads
 };
 
 #define RK_V4L2_OBJECT_PROPS \
+    PROP_VPU_STRIDE, \
     PROP_OUTPUT_ROTATION, \
     PROP_VFLIP, \
     PROP_HFLIP, \
@@ -64,6 +65,7 @@ enum mipi_dphy_sy_pads
   guint32 rotation; \
   gboolean vflip; \
   gboolean hflip; \
+  gboolean vpu_stride; \
   /* Rockchip ISP */ \
   gboolean disable_autoconf; \
   gboolean disable_3A; \
