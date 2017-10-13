@@ -45,10 +45,10 @@ rk_common_v4l2device_find_by_name (const char *name, char *ret_name)
   if ((dir = opendir (SYS_PATH)) != NULL) {
     while ((ent = readdir (dir)) != NULL) {
       FILE *fp;
-      char path[64];
-      char dev_name[64];
+      char path[512];
+      char dev_name[512];
 
-      snprintf (path, 64, SYS_PATH "%s/name", ent->d_name);
+      snprintf (path, 512, SYS_PATH "%s/name", ent->d_name);
       fp = fopen (path, "r");
       if (!fp)
         continue;
@@ -60,7 +60,7 @@ rk_common_v4l2device_find_by_name (const char *name, char *ret_name)
         continue;
 
       if (ret_name)
-        snprintf (ret_name, 32, DEV_PATH "%s", ent->d_name);
+        snprintf (ret_name, 512, DEV_PATH "%s", ent->d_name);
 
       ret = TRUE;
       break;
