@@ -16,9 +16,8 @@ libgstrkv4l2_la_CFLAGS =   $(GST_PLUGINS_BASE_CFLAGS) \
 				 $(GST_BASE_CFLAGS) \
 				 $(GST_CFLAGS) \
 				 $(RKV4L2_CFLAGS) \
-				 -I ./ext \
-				 -I ./v4l2 \
-				 -I ./
+				 -I $(top_srcdir)/gst/rkv4l2/ext \
+				 -I $(top_srcdir)/gst/rkv4l2/v4l2
 
 libgstrkv4l2_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstrkv4l2_la_LIBTOOLFLAGS = $(GST_PLUGIN_LIBTOOLFLAGS)
