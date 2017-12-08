@@ -346,7 +346,7 @@ static GstCaps *
 gst_rkcamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
 {
   GstRKCamSrc *isps;
-  GstV4l2Object *obj;
+  GstRKV4l2Object *obj;
 
   isps = GST_RKCAMSRC (src);
   obj = isps->v4l2object;
@@ -489,7 +489,7 @@ static gboolean
 gst_rkcamsrc_set_format (GstRKCamSrc * rkcamsrc, GstCaps * caps)
 {
   GstV4l2Error error = GST_V4L2_ERROR_INIT;
-  GstV4l2Object *obj;
+  GstRKV4l2Object *obj;
 
   obj = rkcamsrc->v4l2object;
 
@@ -511,7 +511,7 @@ static gboolean
 gst_rkcamsrc_set_caps (GstBaseSrc * src, GstCaps * caps)
 {
   GstRKCamSrc *rkcamsrc;
-  GstV4l2Object *obj;
+  GstRKV4l2Object *obj;
 
   rkcamsrc = GST_RKCAMSRC (src);
   obj = rkcamsrc->v4l2object;
@@ -616,7 +616,7 @@ static gboolean
 gst_rkcamsrc_query (GstBaseSrc * bsrc, GstQuery * query)
 {
   GstRKCamSrc *src;
-  GstV4l2Object *obj;
+  GstRKV4l2Object *obj;
   gboolean res = FALSE;
 
   src = GST_RKCAMSRC (bsrc);
@@ -751,7 +751,7 @@ static gboolean
 gst_rkcamsrc_stop (GstBaseSrc * src)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
-  GstV4l2Object *obj = rkcamsrc->v4l2object;
+  GstRKV4l2Object *obj = rkcamsrc->v4l2object;
 
   if (GST_V4L2_IS_ACTIVE (obj)) {
     if (!gst_v4l2_object_stop (obj))
@@ -768,7 +768,7 @@ gst_rkcamsrc_change_state (GstElement * element, GstStateChange transition)
 {
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (element);
-  GstV4l2Object *obj = rkcamsrc->v4l2object;
+  GstRKV4l2Object *obj = rkcamsrc->v4l2object;
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
@@ -800,8 +800,8 @@ static GstFlowReturn
 gst_rkcamsrc_create (GstPushSrc * src, GstBuffer ** buf)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
-  GstV4l2Object *obj = rkcamsrc->v4l2object;
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL_CAST (obj->pool);
+  GstRKV4l2Object *obj = rkcamsrc->v4l2object;
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL_CAST (obj->pool);
   GstFlowReturn ret;
   GstClock *clock;
   GstClockTime abs_time, base_time, timestamp, duration;

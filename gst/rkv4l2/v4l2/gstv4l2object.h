@@ -3,7 +3,7 @@
  * Copyright (C) 2001-2002 Ronald Bultje <rbultje@ronald.bitfreak.net>
  *               2006 Edgard Lima <edgard.lima@gmail.com>
  *
- * gstv4l2object.h: base class for V4L2 elements
+ * GstRKV4l2Object.h: base class for V4L2 elements
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -34,9 +34,9 @@
 
 #include <gst/video/video.h>
 
-typedef struct _GstV4l2Object GstV4l2Object;
-typedef struct _GstV4l2ObjectClassHelper GstV4l2ObjectClassHelper;
-typedef struct _GstV4l2Xv GstV4l2Xv;
+typedef struct _GstV4l2Object GstRKV4l2Object;
+typedef struct _GstV4l2ObjectClassHelper GstRKV4l2ObjectClassHelper;
+typedef struct _GstV4l2Xv GstRKV4l2Xv;
 
 #include <gstv4l2bufferpool.h>
 
@@ -50,7 +50,7 @@ G_BEGIN_DECLS
 #define GST_TYPE_V4L2_IO_MODE (gst_v4l2_io_mode_get_type ())
     GType gst_v4l2_io_mode_get_type (void);
 
-#define GST_V4L2_OBJECT(obj) (GstV4l2Object *)(obj)
+#define GST_V4L2_OBJECT(obj) (GstRKV4l2Object *)(obj)
 
 typedef enum
 {
@@ -62,11 +62,11 @@ typedef enum
   GST_V4L2_IO_DMABUF_IMPORT = 5
 } GstV4l2IOMode;
 
-typedef gboolean (*GstV4l2GetInOutFunction) (GstV4l2Object * v4l2object,
+typedef gboolean (*GstV4l2GetInOutFunction) (GstRKV4l2Object * v4l2object,
     gint * input);
-typedef gboolean (*GstV4l2SetInOutFunction) (GstV4l2Object * v4l2object,
+typedef gboolean (*GstV4l2SetInOutFunction) (GstRKV4l2Object * v4l2object,
     gint input);
-typedef gboolean (*GstV4l2UpdateFpsFunction) (GstV4l2Object * v4l2object);
+typedef gboolean (*GstV4l2UpdateFpsFunction) (GstRKV4l2Object * v4l2object);
 
 #define GST_V4L2_WIDTH(o)        (GST_VIDEO_INFO_WIDTH (&(o)->info))
 #define GST_V4L2_HEIGHT(o)       (GST_VIDEO_INFO_HEIGHT (&(o)->info))
@@ -161,7 +161,7 @@ struct _GstV4l2Object
   GValue *par;
 
   /* X-overlay */
-  GstV4l2Xv *xv;
+  GstRKV4l2Xv *xv;
   gulong xwindow_id;
 
   /* funcs */
@@ -206,14 +206,14 @@ GType gst_v4l2_object_get_type (void);
     RK_V4L2_OBJECT_PROPS
 
 /* create/destroy */
-GstV4l2Object *gst_v4l2_object_new (GstElement * element,
+GstRKV4l2Object *gst_v4l2_object_new (GstElement * element,
     enum v4l2_buf_type type,
     const char *default_device,
     GstV4l2GetInOutFunction get_in_out_func,
     GstV4l2SetInOutFunction set_in_out_func,
     GstV4l2UpdateFpsFunction update_fps_func);
 
-void gst_v4l2_object_destroy (GstV4l2Object * v4l2object);
+void gst_v4l2_object_destroy (GstRKV4l2Object * v4l2object);
 
 /* properties */
 
@@ -226,15 +226,15 @@ void gst_v4l2_object_install_m2m_properties_helper (GObjectClass *
 void gst_v4l2_object_install_rockchip_properties_helper (GObjectClass *
     gobject_class);
 
-gboolean gst_v4l2_object_set_property_helper (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_object_set_property_helper (GstRKV4l2Object * v4l2object,
     guint prop_id, const GValue * value, GParamSpec * pspec);
-gboolean gst_v4l2_object_get_property_helper (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_object_get_property_helper (GstRKV4l2Object * v4l2object,
     guint prop_id, GValue * value, GParamSpec * pspec);
 /* open/close */
-gboolean gst_v4l2_object_open (GstV4l2Object * v4l2object);
-gboolean gst_v4l2_object_open_shared (GstV4l2Object * v4l2object,
-    GstV4l2Object * other);
-gboolean gst_v4l2_object_close (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_open (GstRKV4l2Object * v4l2object);
+gboolean gst_v4l2_object_open_shared (GstRKV4l2Object * v4l2object,
+    GstRKV4l2Object * other);
+gboolean gst_v4l2_object_close (GstRKV4l2Object * v4l2object);
 
 /* probing */
 
@@ -247,33 +247,33 @@ GstCaps *gst_v4l2_object_get_codec_caps (void);
 gint gst_v4l2_object_extrapolate_stride (const GstVideoFormatInfo * finfo,
     gint plane, gint stride);
 
-gboolean gst_v4l2_object_set_format (GstV4l2Object * v4l2object, GstCaps * caps,
+gboolean gst_v4l2_object_set_format (GstRKV4l2Object * v4l2object, GstCaps * caps,
     GstV4l2Error * error);
-gboolean gst_v4l2_object_try_format (GstV4l2Object * v4l2object, GstCaps * caps,
+gboolean gst_v4l2_object_try_format (GstRKV4l2Object * v4l2object, GstCaps * caps,
     GstV4l2Error * error);
 
-gboolean gst_v4l2_object_caps_equal (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_object_caps_equal (GstRKV4l2Object * v4l2object,
     GstCaps * caps);
 
-gboolean gst_v4l2_object_unlock (GstV4l2Object * v4l2object);
-gboolean gst_v4l2_object_unlock_stop (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_unlock (GstRKV4l2Object * v4l2object);
+gboolean gst_v4l2_object_unlock_stop (GstRKV4l2Object * v4l2object);
 
-gboolean gst_v4l2_object_stop (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_object_stop (GstRKV4l2Object * v4l2object);
 
-GstCaps *gst_v4l2_object_probe_caps (GstV4l2Object * v4l2object,
+GstCaps *gst_v4l2_object_probe_caps (GstRKV4l2Object * v4l2object,
     GstCaps * filter);
-GstCaps *gst_v4l2_object_get_caps (GstV4l2Object * v4l2object,
+GstCaps *gst_v4l2_object_get_caps (GstRKV4l2Object * v4l2object,
     GstCaps * filter);
 
-gboolean gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_object_acquire_format (GstRKV4l2Object * v4l2object,
     GstVideoInfo * info);
 
-gboolean gst_v4l2_object_set_crop (GstV4l2Object * obj);
+gboolean gst_v4l2_object_set_crop (GstRKV4l2Object * obj);
 
-gboolean gst_v4l2_object_decide_allocation (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_object_decide_allocation (GstRKV4l2Object * v4l2object,
     GstQuery * query);
 
-gboolean gst_v4l2_object_propose_allocation (GstV4l2Object * obj,
+gboolean gst_v4l2_object_propose_allocation (GstRKV4l2Object * obj,
     GstQuery * query);
 
 GstStructure *gst_v4l2_object_v4l2fourcc_to_structure (guint32 fourcc);

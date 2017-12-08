@@ -4,7 +4,7 @@
  *               2006 Edgard Lima <edgard.lima@gmail.com>
  *               2009 Texas Instruments, Inc - http://www.ti.com/
  *
- * gstv4l2bufferpool.c V4L2 buffer pool class
+ * GstRKV4l2BufferPool.c V4L2 buffer pool class
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -54,10 +54,10 @@ GST_DEBUG_CATEGORY_STATIC (CAT_PERFORMANCE);
 
 
 /*
- * GstV4l2BufferPool:
+ * GstRKV4l2BufferPool:
  */
 #define gst_v4l2_buffer_pool_parent_class parent_class
-G_DEFINE_TYPE (GstV4l2BufferPool, gst_v4l2_buffer_pool, GST_TYPE_BUFFER_POOL);
+G_DEFINE_TYPE (GstRKV4l2BufferPool, gst_v4l2_buffer_pool, GST_TYPE_BUFFER_POOL);
 
 enum _GstV4l2BufferPoolAcquireFlags
 {
@@ -70,7 +70,7 @@ static void gst_v4l2_buffer_pool_release_buffer (GstBufferPool * bpool,
     GstBuffer * buffer);
 
 static gboolean
-gst_v4l2_is_buffer_valid (GstBuffer * buffer, GstV4l2MemoryGroup ** out_group)
+gst_v4l2_is_buffer_valid (GstBuffer * buffer, GstRKV4l2MemoryGroup ** out_group)
 {
   GstMemory *mem = gst_buffer_peek_memory (buffer, 0);
   gboolean valid = FALSE;
@@ -83,8 +83,8 @@ gst_v4l2_is_buffer_valid (GstBuffer * buffer, GstV4l2MemoryGroup ** out_group)
         GST_V4L2_MEMORY_QUARK);
 
   if (mem && gst_is_v4l2_memory (mem)) {
-    GstV4l2Memory *vmem = (GstV4l2Memory *) mem;
-    GstV4l2MemoryGroup *group = vmem->group;
+    GstRKV4l2Memory *vmem = (GstRKV4l2Memory *) mem;
+    GstRKV4l2MemoryGroup *group = vmem->group;
     gint i;
 
     if (group->n_mem != gst_buffer_n_memory (buffer))
@@ -108,7 +108,7 @@ done:
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_copy_buffer (GstV4l2BufferPool * pool, GstBuffer * dest,
+gst_v4l2_buffer_pool_copy_buffer (GstRKV4l2BufferPool * pool, GstBuffer * dest,
     GstBuffer * src)
 {
   const GstVideoFormatInfo *finfo = pool->caps_info.finfo;
@@ -197,11 +197,11 @@ _unmap_userptr_frame (struct UserPtrData *data)
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_import_userptr (GstV4l2BufferPool * pool,
+gst_v4l2_buffer_pool_import_userptr (GstRKV4l2BufferPool * pool,
     GstBuffer * dest, GstBuffer * src)
 {
   GstFlowReturn ret = GST_FLOW_OK;
-  GstV4l2MemoryGroup *group = NULL;
+  GstRKV4l2MemoryGroup *group = NULL;
   GstMapFlags flags;
   const GstVideoFormatInfo *finfo = pool->caps_info.finfo;
   struct UserPtrData *data = NULL;
@@ -323,10 +323,10 @@ import_failed:
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_import_dmabuf (GstV4l2BufferPool * pool,
+gst_v4l2_buffer_pool_import_dmabuf (GstRKV4l2BufferPool * pool,
     GstBuffer * dest, GstBuffer * src)
 {
-  GstV4l2MemoryGroup *group = NULL;
+  GstRKV4l2MemoryGroup *group = NULL;
   GstMemory *dma_mem[GST_VIDEO_MAX_PLANES] = { 0 };
   guint n_mem = gst_buffer_n_memory (src);
   gint i;
@@ -372,7 +372,7 @@ import_failed:
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_prepare_buffer (GstV4l2BufferPool * pool,
+gst_v4l2_buffer_pool_prepare_buffer (GstRKV4l2BufferPool * pool,
     GstBuffer * dest, GstBuffer * src)
 {
   GstFlowReturn ret = GST_FLOW_OK;
@@ -419,10 +419,10 @@ static GstFlowReturn
 gst_v4l2_buffer_pool_alloc_buffer (GstBufferPool * bpool, GstBuffer ** buffer,
     GstBufferPoolAcquireParams * params)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
-  GstV4l2MemoryGroup *group = NULL;
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2MemoryGroup *group = NULL;
   GstBuffer *newbuf = NULL;
-  GstV4l2Object *obj;
+  GstRKV4l2Object *obj;
   GstVideoInfo *info;
 
   obj = pool->obj;
@@ -484,8 +484,8 @@ allocation_failed:
 static gboolean
 gst_v4l2_buffer_pool_set_config (GstBufferPool * bpool, GstStructure * config)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2Object *obj = pool->obj;
   GstCaps *caps;
   guint size, min_buffers, max_buffers;
   GstAllocator *allocator;
@@ -611,9 +611,9 @@ wrong_config:
 }
 
 static gboolean
-gst_v4l2_buffer_pool_streamon (GstV4l2BufferPool * pool)
+gst_v4l2_buffer_pool_streamon (GstRKV4l2BufferPool * pool)
 {
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
 
   switch (obj->mode) {
     case GST_V4L2_IO_MMAP:
@@ -644,9 +644,9 @@ streamon_failed:
 }
 
 static void
-gst_v4l2_buffer_pool_streamoff (GstV4l2BufferPool * pool)
+gst_v4l2_buffer_pool_streamoff (GstRKV4l2BufferPool * pool)
 {
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
 
   switch (obj->mode) {
     case GST_V4L2_IO_MMAP:
@@ -672,7 +672,7 @@ gst_v4l2_buffer_pool_streamoff (GstV4l2BufferPool * pool)
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_resurect_buffer (GstV4l2BufferPool * pool)
+gst_v4l2_buffer_pool_resurect_buffer (GstRKV4l2BufferPool * pool)
 {
   GstBufferPoolAcquireParams params = { 0 };
   GstBuffer *buffer = NULL;
@@ -695,9 +695,9 @@ gst_v4l2_buffer_pool_resurect_buffer (GstV4l2BufferPool * pool)
 static gboolean
 gst_v4l2_buffer_pool_start (GstBufferPool * bpool)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
   GstBufferPoolClass *pclass = GST_BUFFER_POOL_CLASS (parent_class);
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
   GstStructure *config;
   GstCaps *caps;
   guint size, min_buffers, max_buffers;
@@ -733,11 +733,11 @@ gst_v4l2_buffer_pool_start (GstBufferPool * bpool)
 
       can_allocate = GST_V4L2_ALLOCATOR_CAN_ALLOCATE (pool->vallocator, MMAP);
 
-      /* first, lets request buffers, and see how many we can get: */
-      GST_DEBUG_OBJECT (pool, "requesting %d MMAP buffers", min_buffers);
-
       count = gst_v4l2_allocator_start (pool->vallocator, min_buffers,
           V4L2_MEMORY_MMAP);
+
+      /* first, lets request buffers, and see how many we can get: */
+      printf ("requesting %d MMAP buffers", count);
 
       if (count < GST_V4L2_MIN_BUFFERS) {
         min_buffers = count;
@@ -784,8 +784,8 @@ gst_v4l2_buffer_pool_start (GstBufferPool * bpool)
       guint count;
 
       can_allocate = GST_V4L2_ALLOCATOR_CAN_ALLOCATE (pool->vallocator, DMABUF);
-
-      GST_DEBUG_OBJECT (pool, "requesting %d DMABUF buffers", min_buffers);
+      min_buffers = 1;
+      printf ("requesting %d DMABUF buffers", min_buffers);
 
       count = gst_v4l2_allocator_start (pool->vallocator, min_buffers,
           V4L2_MEMORY_DMABUF);
@@ -871,7 +871,7 @@ other_pool_failed:
 static gboolean
 gst_v4l2_buffer_pool_stop (GstBufferPool * bpool)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
   GstBufferPoolClass *pclass = GST_BUFFER_POOL_CLASS (parent_class);
   gboolean ret;
   gint i;
@@ -926,7 +926,7 @@ gst_v4l2_buffer_pool_stop (GstBufferPool * bpool)
 static void
 gst_v4l2_buffer_pool_flush_start (GstBufferPool * bpool)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
 
   GST_DEBUG_OBJECT (pool, "start flushing");
 
@@ -944,8 +944,8 @@ gst_v4l2_buffer_pool_flush_start (GstBufferPool * bpool)
 static void
 gst_v4l2_buffer_pool_flush_stop (GstBufferPool * bpool)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2Object *obj = pool->obj;
   GstBuffer *buffers[VIDEO_MAX_FRAME];
   gint i;
 
@@ -1008,7 +1008,7 @@ streamon:
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_poll (GstV4l2BufferPool * pool)
+gst_v4l2_buffer_pool_poll (GstRKV4l2BufferPool * pool)
 {
   gint ret;
 
@@ -1067,10 +1067,10 @@ select_error:
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_qbuf (GstV4l2BufferPool * pool, GstBuffer * buf)
+gst_v4l2_buffer_pool_qbuf (GstRKV4l2BufferPool * pool, GstBuffer * buf)
 {
-  GstV4l2MemoryGroup *group = NULL;
-  const GstV4l2Object *obj = pool->obj;
+  GstRKV4l2MemoryGroup *group = NULL;
+  const GstRKV4l2Object *obj = pool->obj;
   GstClockTime timestamp;
   gint index;
 
@@ -1145,13 +1145,13 @@ queue_failed:
 }
 
 static GstFlowReturn
-gst_v4l2_buffer_pool_dqbuf (GstV4l2BufferPool * pool, GstBuffer ** buffer)
+gst_v4l2_buffer_pool_dqbuf (GstRKV4l2BufferPool * pool, GstBuffer ** buffer)
 {
   GstFlowReturn res;
   GstBuffer *outbuf;
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
   GstClockTime timestamp;
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
   gint i;
 
   if ((res = gst_v4l2_buffer_pool_poll (pool)) != GST_FLOW_OK)
@@ -1298,9 +1298,9 @@ gst_v4l2_buffer_pool_acquire_buffer (GstBufferPool * bpool, GstBuffer ** buffer,
     GstBufferPoolAcquireParams * params)
 {
   GstFlowReturn ret;
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
   GstBufferPoolClass *pclass = GST_BUFFER_POOL_CLASS (parent_class);
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
 
   GST_DEBUG_OBJECT (pool, "acquire");
 
@@ -1376,9 +1376,9 @@ done:
 static void
 gst_v4l2_buffer_pool_release_buffer (GstBufferPool * bpool, GstBuffer * buffer)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (bpool);
   GstBufferPoolClass *pclass = GST_BUFFER_POOL_CLASS (parent_class);
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
 
   GST_DEBUG_OBJECT (pool, "release buffer %p", buffer);
 
@@ -1398,7 +1398,7 @@ gst_v4l2_buffer_pool_release_buffer (GstBufferPool * bpool, GstBuffer * buffer)
         case GST_V4L2_IO_USERPTR:
         case GST_V4L2_IO_DMABUF_IMPORT:
         {
-          GstV4l2MemoryGroup *group;
+          GstRKV4l2MemoryGroup *group;
           if (gst_v4l2_is_buffer_valid (buffer, &group)) {
             gst_v4l2_allocator_reset_group (pool->vallocator, group);
             /* queue back in the device */
@@ -1433,7 +1433,7 @@ gst_v4l2_buffer_pool_release_buffer (GstBufferPool * bpool, GstBuffer * buffer)
         case GST_V4L2_IO_USERPTR:
         case GST_V4L2_IO_DMABUF_IMPORT:
         {
-          GstV4l2MemoryGroup *group;
+          GstRKV4l2MemoryGroup *group;
           guint index;
 
           if (!gst_v4l2_is_buffer_valid (buffer, &group)) {
@@ -1483,7 +1483,7 @@ gst_v4l2_buffer_pool_release_buffer (GstBufferPool * bpool, GstBuffer * buffer)
 static void
 gst_v4l2_buffer_pool_dispose (GObject * object)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (object);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (object);
 
   if (pool->vallocator)
     gst_object_unref (pool->vallocator);
@@ -1503,7 +1503,7 @@ gst_v4l2_buffer_pool_dispose (GObject * object)
 static void
 gst_v4l2_buffer_pool_finalize (GObject * object)
 {
-  GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (object);
+  GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL (object);
 
   if (pool->video_fd >= 0)
     v4l2_close (pool->video_fd);
@@ -1524,7 +1524,7 @@ gst_v4l2_buffer_pool_finalize (GObject * object)
 }
 
 static void
-gst_v4l2_buffer_pool_init (GstV4l2BufferPool * pool)
+gst_v4l2_buffer_pool_init (GstRKV4l2BufferPool * pool)
 {
   pool->poll = gst_poll_new (TRUE);
   pool->can_poll_device = TRUE;
@@ -1533,7 +1533,7 @@ gst_v4l2_buffer_pool_init (GstV4l2BufferPool * pool)
 }
 
 static void
-gst_v4l2_buffer_pool_class_init (GstV4l2BufferPoolClass * klass)
+gst_v4l2_buffer_pool_class_init (GstRKV4l2BufferPoolClass * klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   GstBufferPoolClass *bufferpool_class = GST_BUFFER_POOL_CLASS (klass);
@@ -1564,9 +1564,9 @@ gst_v4l2_buffer_pool_class_init (GstV4l2BufferPoolClass * klass)
  * Returns: the new pool, use gst_object_unref() to free resources
  */
 GstBufferPool *
-gst_v4l2_buffer_pool_new (GstV4l2Object * obj, GstCaps * caps)
+gst_v4l2_buffer_pool_new (GstRKV4l2Object * obj, GstCaps * caps)
 {
-  GstV4l2BufferPool *pool;
+  GstRKV4l2BufferPool *pool;
   GstStructure *config;
   gchar *name, *parent_name;
   gint fd;
@@ -1581,7 +1581,7 @@ gst_v4l2_buffer_pool_new (GstV4l2Object * obj, GstCaps * caps)
       V4L2_TYPE_IS_OUTPUT (obj->type) ? "sink" : "src", NULL);
   g_free (parent_name);
 
-  pool = (GstV4l2BufferPool *) g_object_new (GST_TYPE_V4L2_BUFFER_POOL,
+  pool = (GstRKV4l2BufferPool *) g_object_new (GST_TYPE_V4L2_BUFFER_POOL,
       "name", name, NULL);
   g_object_ref_sink (pool);
   g_free (name);
@@ -1628,10 +1628,10 @@ allocator_failed:
 }
 
 static GstFlowReturn
-gst_v4l2_do_read (GstV4l2BufferPool * pool, GstBuffer * buf)
+gst_v4l2_do_read (GstRKV4l2BufferPool * pool, GstBuffer * buf)
 {
   GstFlowReturn res;
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
   gint amount;
   GstMapInfo map;
   gint toread;
@@ -1701,11 +1701,11 @@ cleanup:
  * Returns: %GST_FLOW_OK on success.
  */
 GstFlowReturn
-gst_v4l2_buffer_pool_process (GstV4l2BufferPool * pool, GstBuffer ** buf)
+gst_v4l2_buffer_pool_process (GstRKV4l2BufferPool * pool, GstBuffer ** buf)
 {
   GstFlowReturn ret = GST_FLOW_OK;
   GstBufferPool *bpool = GST_BUFFER_POOL_CAST (pool);
-  GstV4l2Object *obj = pool->obj;
+  GstRKV4l2Object *obj = pool->obj;
 
   GST_DEBUG_OBJECT (pool, "process buffer %p", buf);
 
@@ -1856,7 +1856,7 @@ gst_v4l2_buffer_pool_process (GstV4l2BufferPool * pool, GstBuffer ** buf)
         case GST_V4L2_IO_MMAP:
         {
           GstBuffer *to_queue = NULL;
-          GstV4l2MemoryGroup *group;
+          GstRKV4l2MemoryGroup *group;
           gint index;
 
           if ((*buf)->pool != bpool)
@@ -1997,7 +1997,7 @@ start_failed:
 }
 
 void
-gst_v4l2_buffer_pool_set_other_pool (GstV4l2BufferPool * pool,
+gst_v4l2_buffer_pool_set_other_pool (GstRKV4l2BufferPool * pool,
     GstBufferPool * other_pool)
 {
   g_return_if_fail (!gst_buffer_pool_is_active (GST_BUFFER_POOL (pool)));
@@ -2008,7 +2008,8 @@ gst_v4l2_buffer_pool_set_other_pool (GstV4l2BufferPool * pool,
 }
 
 void
-gst_v4l2_buffer_pool_copy_at_threshold (GstV4l2BufferPool * pool, gboolean copy)
+gst_v4l2_buffer_pool_copy_at_threshold (GstRKV4l2BufferPool * pool,
+    gboolean copy)
 {
   GST_OBJECT_LOCK (pool);
   pool->enable_copy_threshold = copy;

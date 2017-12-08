@@ -40,7 +40,7 @@
 #define GST_V4L2_MEMORY_TYPE "V4l2Memory"
 
 #define gst_v4l2_allocator_parent_class parent_class
-G_DEFINE_TYPE (GstV4l2Allocator, gst_v4l2_allocator, GST_TYPE_ALLOCATOR);
+G_DEFINE_TYPE (GstRKV4l2Allocator, gst_v4l2_allocator, GST_TYPE_ALLOCATOR);
 
 GST_DEBUG_CATEGORY_STATIC (v4l2allocator_debug);
 #define GST_CAT_DEFAULT v4l2allocator_debug
@@ -61,8 +61,8 @@ enum
 
 static guint gst_v4l2_allocator_signals[LAST_SIGNAL] = { 0 };
 
-static void gst_v4l2_allocator_release (GstV4l2Allocator * allocator,
-    GstV4l2Memory * mem);
+static void gst_v4l2_allocator_release (GstRKV4l2Allocator * allocator,
+    GstRKV4l2Memory * mem);
 
 static const gchar *
 memory_type_to_str (guint32 memory)
@@ -84,7 +84,7 @@ memory_type_to_str (guint32 memory)
 /*************************************/
 
 static gpointer
-_v4l2mem_map (GstV4l2Memory * mem, gsize maxsize, GstMapFlags flags)
+_v4l2mem_map (GstRKV4l2Memory * mem, gsize maxsize, GstMapFlags flags)
 {
   gpointer data = NULL;
 
@@ -105,7 +105,7 @@ _v4l2mem_map (GstV4l2Memory * mem, gsize maxsize, GstMapFlags flags)
 }
 
 static gboolean
-_v4l2mem_unmap (GstV4l2Memory * mem)
+_v4l2mem_unmap (GstRKV4l2Memory * mem)
 {
   gboolean ret = FALSE;
 
@@ -126,10 +126,10 @@ _v4l2mem_unmap (GstV4l2Memory * mem)
 }
 
 static gboolean
-_v4l2mem_dispose (GstV4l2Memory * mem)
+_v4l2mem_dispose (GstRKV4l2Memory * mem)
 {
-  GstV4l2Allocator *allocator = (GstV4l2Allocator *) mem->mem.allocator;
-  GstV4l2MemoryGroup *group = mem->group;
+  GstRKV4l2Allocator *allocator = (GstRKV4l2Allocator *) mem->mem.allocator;
+  GstRKV4l2MemoryGroup *group = mem->group;
   gboolean ret;
 
   if (group->mem[mem->plane]) {
@@ -145,14 +145,14 @@ _v4l2mem_dispose (GstV4l2Memory * mem)
   return ret;
 }
 
-static inline GstV4l2Memory *
+static inline GstRKV4l2Memory *
 _v4l2mem_new (GstMemoryFlags flags, GstAllocator * allocator,
     GstMemory * parent, gsize maxsize, gsize align, gsize offset, gsize size,
-    gint plane, gpointer data, int dmafd, GstV4l2MemoryGroup * group)
+    gint plane, gpointer data, int dmafd, GstRKV4l2MemoryGroup * group)
 {
-  GstV4l2Memory *mem;
+  GstRKV4l2Memory *mem;
 
-  mem = g_slice_new0 (GstV4l2Memory);
+  mem = g_slice_new0 (GstRKV4l2Memory);
   gst_memory_init (GST_MEMORY_CAST (mem),
       flags, allocator, parent, maxsize, align, offset, size);
 
@@ -168,10 +168,10 @@ _v4l2mem_new (GstMemoryFlags flags, GstAllocator * allocator,
   return mem;
 }
 
-static GstV4l2Memory *
-_v4l2mem_share (GstV4l2Memory * mem, gssize offset, gsize size)
+static GstRKV4l2Memory *
+_v4l2mem_share (GstRKV4l2Memory * mem, gssize offset, gsize size)
 {
-  GstV4l2Memory *sub;
+  GstRKV4l2Memory *sub;
   GstMemory *parent;
 
   /* find the real parent */
@@ -191,7 +191,8 @@ _v4l2mem_share (GstV4l2Memory * mem, gssize offset, gsize size)
 }
 
 static gboolean
-_v4l2mem_is_span (GstV4l2Memory * mem1, GstV4l2Memory * mem2, gsize * offset)
+_v4l2mem_is_span (GstRKV4l2Memory * mem1, GstRKV4l2Memory * mem2,
+    gsize * offset)
 {
   if (offset)
     *offset = mem1->mem.offset - mem1->mem.parent->offset;
@@ -212,18 +213,18 @@ gst_v4l2_memory_quark (void)
   static GQuark quark = 0;
 
   if (quark == 0)
-    quark = g_quark_from_string ("GstV4l2Memory");
+    quark = g_quark_from_string ("GstRKV4l2Memory");
 
   return quark;
 }
 
 
 /*************************************/
-/* GstV4l2MemoryGroup implementation */
+/* GstRKV4l2MemoryGroup implementation */
 /*************************************/
 
 static void
-gst_v4l2_memory_group_free (GstV4l2MemoryGroup * group)
+gst_v4l2_memory_group_free (GstRKV4l2MemoryGroup * group)
 {
   gint i;
 
@@ -234,19 +235,19 @@ gst_v4l2_memory_group_free (GstV4l2MemoryGroup * group)
       gst_memory_unref (mem);
   }
 
-  g_slice_free (GstV4l2MemoryGroup, group);
+  g_slice_free (GstRKV4l2MemoryGroup, group);
 }
 
-static GstV4l2MemoryGroup *
-gst_v4l2_memory_group_new (GstV4l2Allocator * allocator, guint32 index)
+static GstRKV4l2MemoryGroup *
+gst_v4l2_memory_group_new (GstRKV4l2Allocator * allocator, guint32 index)
 {
   gint video_fd = allocator->video_fd;
   guint32 memory = allocator->memory;
   struct v4l2_format *format = &allocator->format;
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
   gsize img_size, buf_size;
 
-  group = g_slice_new0 (GstV4l2MemoryGroup);
+  group = g_slice_new0 (GstRKV4l2MemoryGroup);
 
   group->buffer.type = format->type;
   group->buffer.index = index;
@@ -266,7 +267,7 @@ gst_v4l2_memory_group_new (GstV4l2Allocator * allocator, guint32 index)
     GST_ERROR_OBJECT (allocator, "Buffer index returned by VIDIOC_QUERYBUF "
         "didn't match, this indicate the presence of a bug in your driver or "
         "libv4l2");
-    g_slice_free (GstV4l2MemoryGroup, group);
+    g_slice_free (GstRKV4l2MemoryGroup, group);
     return NULL;
   }
 
@@ -343,9 +344,10 @@ failed:
 /*************************************/
 
 static void
-gst_v4l2_allocator_release (GstV4l2Allocator * allocator, GstV4l2Memory * mem)
+gst_v4l2_allocator_release (GstRKV4l2Allocator * allocator,
+    GstRKV4l2Memory * mem)
 {
-  GstV4l2MemoryGroup *group = mem->group;
+  GstRKV4l2MemoryGroup *group = mem->group;
 
   GST_LOG_OBJECT (allocator, "plane %i of buffer %u released",
       mem->plane, group->buffer.index);
@@ -376,9 +378,9 @@ gst_v4l2_allocator_release (GstV4l2Allocator * allocator, GstV4l2Memory * mem)
 static void
 gst_v4l2_allocator_free (GstAllocator * gallocator, GstMemory * gmem)
 {
-  GstV4l2Allocator *allocator = (GstV4l2Allocator *) gallocator;
-  GstV4l2Memory *mem = (GstV4l2Memory *) gmem;
-  GstV4l2MemoryGroup *group = mem->group;
+  GstRKV4l2Allocator *allocator = (GstRKV4l2Allocator *) gallocator;
+  GstRKV4l2Memory *mem = (GstRKV4l2Memory *) gmem;
+  GstRKV4l2MemoryGroup *group = mem->group;
 
   /* Only free unparented memory */
   if (mem->mem.parent == NULL) {
@@ -395,19 +397,19 @@ gst_v4l2_allocator_free (GstAllocator * gallocator, GstMemory * gmem)
       close (mem->dmafd);
   }
 
-  g_slice_free (GstV4l2Memory, mem);
+  g_slice_free (GstRKV4l2Memory, mem);
 }
 
 static void
 gst_v4l2_allocator_dispose (GObject * obj)
 {
-  GstV4l2Allocator *allocator = (GstV4l2Allocator *) obj;
+  GstRKV4l2Allocator *allocator = (GstRKV4l2Allocator *) obj;
   gint i;
 
   GST_LOG_OBJECT (obj, "called");
 
   for (i = 0; i < allocator->count; i++) {
-    GstV4l2MemoryGroup *group = allocator->groups[i];
+    GstRKV4l2MemoryGroup *group = allocator->groups[i];
     allocator->groups[i] = NULL;
     if (group)
       gst_v4l2_memory_group_free (group);
@@ -419,7 +421,7 @@ gst_v4l2_allocator_dispose (GObject * obj)
 static void
 gst_v4l2_allocator_finalize (GObject * obj)
 {
-  GstV4l2Allocator *allocator = (GstV4l2Allocator *) obj;
+  GstRKV4l2Allocator *allocator = (GstRKV4l2Allocator *) obj;
 
   GST_LOG_OBJECT (obj, "called");
 
@@ -430,7 +432,7 @@ gst_v4l2_allocator_finalize (GObject * obj)
 }
 
 static void
-gst_v4l2_allocator_class_init (GstV4l2AllocatorClass * klass)
+gst_v4l2_allocator_class_init (GstRKV4l2AllocatorClass * klass)
 {
   GObjectClass *object_class;
   GstAllocatorClass *allocator_class;
@@ -453,7 +455,7 @@ gst_v4l2_allocator_class_init (GstV4l2AllocatorClass * klass)
 }
 
 static void
-gst_v4l2_allocator_init (GstV4l2Allocator * allocator)
+gst_v4l2_allocator_init (GstRKV4l2Allocator * allocator)
 {
   GstAllocator *alloc = GST_ALLOCATOR_CAST (allocator);
 
@@ -474,7 +476,7 @@ gst_v4l2_allocator_init (GstV4l2Allocator * allocator)
         GST_V4L2_ALLOCATOR_FLAG_ ## type ## _REQBUFS, \
         GST_V4L2_ALLOCATOR_FLAG_ ## type ## _CREATE_BUFS)
 static guint32
-gst_v4l2_allocator_probe (GstV4l2Allocator * allocator, guint32 memory,
+gst_v4l2_allocator_probe (GstRKV4l2Allocator * allocator, guint32 memory,
     guint32 breq_flag, guint32 bcreate_flag)
 {
   struct v4l2_requestbuffers breq = { 0 };
@@ -499,11 +501,11 @@ gst_v4l2_allocator_probe (GstV4l2Allocator * allocator, guint32 memory,
   return flags;
 }
 
-static GstV4l2MemoryGroup *
-gst_v4l2_allocator_create_buf (GstV4l2Allocator * allocator)
+static GstRKV4l2MemoryGroup *
+gst_v4l2_allocator_create_buf (GstRKV4l2Allocator * allocator)
 {
   struct v4l2_create_buffers bcreate = { 0 };
-  GstV4l2MemoryGroup *group = NULL;
+  GstRKV4l2MemoryGroup *group = NULL;
 
   GST_OBJECT_LOCK (allocator);
 
@@ -549,10 +551,10 @@ create_bufs_bug:
   }
 }
 
-static GstV4l2MemoryGroup *
-gst_v4l2_allocator_alloc (GstV4l2Allocator * allocator)
+static GstRKV4l2MemoryGroup *
+gst_v4l2_allocator_alloc (GstRKV4l2Allocator * allocator)
 {
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
 
   if (!g_atomic_int_get (&allocator->active))
     return NULL;
@@ -573,8 +575,8 @@ gst_v4l2_allocator_alloc (GstV4l2Allocator * allocator)
 }
 
 static void
-gst_v4l2_allocator_reset_size (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group)
+gst_v4l2_allocator_reset_size (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group)
 {
   gsize size;
   gboolean imported = FALSE;
@@ -609,7 +611,8 @@ gst_v4l2_allocator_reset_size (GstV4l2Allocator * allocator,
 }
 
 static void
-_cleanup_failed_alloc (GstV4l2Allocator * allocator, GstV4l2MemoryGroup * group)
+_cleanup_failed_alloc (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group)
 {
   if (group->mems_allocated > 0) {
     gint i;
@@ -626,11 +629,11 @@ _cleanup_failed_alloc (GstV4l2Allocator * allocator, GstV4l2MemoryGroup * group)
 
 
 
-GstV4l2Allocator *
+GstRKV4l2Allocator *
 gst_v4l2_allocator_new (GstObject * parent, gint video_fd,
     struct v4l2_format *format)
 {
-  GstV4l2Allocator *allocator;
+  GstRKV4l2Allocator *allocator;
   guint32 flags = 0;
   gchar *name, *parent_name;
 
@@ -668,7 +671,7 @@ gst_v4l2_allocator_new (GstObject * parent, gint video_fd,
 }
 
 guint
-gst_v4l2_allocator_start (GstV4l2Allocator * allocator, guint32 count,
+gst_v4l2_allocator_start (GstRKV4l2Allocator * allocator, guint32 count,
     guint32 memory)
 {
   struct v4l2_requestbuffers breq = { count, allocator->type, memory };
@@ -749,7 +752,7 @@ error:
 }
 
 GstV4l2Return
-gst_v4l2_allocator_stop (GstV4l2Allocator * allocator)
+gst_v4l2_allocator_stop (GstRKV4l2Allocator * allocator)
 {
   struct v4l2_requestbuffers breq = { 0, allocator->type, allocator->memory };
   gint i = 0;
@@ -773,7 +776,7 @@ gst_v4l2_allocator_stop (GstV4l2Allocator * allocator)
   };
 
   for (i = 0; i < allocator->count; i++) {
-    GstV4l2MemoryGroup *group = allocator->groups[i];
+    GstRKV4l2MemoryGroup *group = allocator->groups[i];
     allocator->groups[i] = NULL;
     if (group)
       gst_v4l2_memory_group_free (group);
@@ -793,10 +796,10 @@ done:
   return ret;
 }
 
-GstV4l2MemoryGroup *
-gst_v4l2_allocator_alloc_mmap (GstV4l2Allocator * allocator)
+GstRKV4l2MemoryGroup *
+gst_v4l2_allocator_alloc_mmap (GstRKV4l2Allocator * allocator)
 {
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
   gint i;
 
   g_return_val_if_fail (allocator->memory == V4L2_MEMORY_MMAP, NULL);
@@ -847,11 +850,11 @@ mmap_failed:
   }
 }
 
-GstV4l2MemoryGroup *
-gst_v4l2_allocator_alloc_dmabuf (GstV4l2Allocator * allocator,
+GstRKV4l2MemoryGroup *
+gst_v4l2_allocator_alloc_dmabuf (GstRKV4l2Allocator * allocator,
     GstAllocator * dmabuf_allocator)
 {
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
   gint i;
 
   g_return_val_if_fail (allocator->memory == V4L2_MEMORY_MMAP, NULL);
@@ -862,7 +865,7 @@ gst_v4l2_allocator_alloc_dmabuf (GstV4l2Allocator * allocator,
     return NULL;
 
   for (i = 0; i < group->n_mem; i++) {
-    GstV4l2Memory *mem;
+    GstRKV4l2Memory *mem;
     GstMemory *dma_mem;
     gint dmafd;
 
@@ -889,7 +892,7 @@ gst_v4l2_allocator_alloc_dmabuf (GstV4l2Allocator * allocator,
     }
 
     g_assert (gst_is_v4l2_memory (group->mem[i]));
-    mem = (GstV4l2Memory *) group->mem[i];
+    mem = (GstRKV4l2Memory *) group->mem[i];
 
     if ((dmafd = dup (mem->dmafd)) < 0)
       goto dup_failed;
@@ -928,17 +931,17 @@ cleanup:
 }
 
 static void
-gst_v4l2_allocator_clear_dmabufin (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group)
+gst_v4l2_allocator_clear_dmabufin (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group)
 {
-  GstV4l2Memory *mem;
+  GstRKV4l2Memory *mem;
   gint i;
 
   g_return_if_fail (allocator->memory == V4L2_MEMORY_DMABUF);
 
   for (i = 0; i < group->n_mem; i++) {
 
-    mem = (GstV4l2Memory *) group->mem[i];
+    mem = (GstRKV4l2Memory *) group->mem[i];
 
     GST_LOG_OBJECT (allocator, "clearing DMABUF import, fd %i plane %d",
         mem->dmafd, i);
@@ -966,10 +969,10 @@ gst_v4l2_allocator_clear_dmabufin (GstV4l2Allocator * allocator,
   }
 }
 
-GstV4l2MemoryGroup *
-gst_v4l2_allocator_alloc_dmabufin (GstV4l2Allocator * allocator)
+GstRKV4l2MemoryGroup *
+gst_v4l2_allocator_alloc_dmabufin (GstRKV4l2Allocator * allocator)
 {
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
   gint i;
 
   g_return_val_if_fail (allocator->memory == V4L2_MEMORY_DMABUF, NULL);
@@ -999,16 +1002,16 @@ gst_v4l2_allocator_alloc_dmabufin (GstV4l2Allocator * allocator)
 }
 
 static void
-gst_v4l2_allocator_clear_userptr (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group)
+gst_v4l2_allocator_clear_userptr (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group)
 {
-  GstV4l2Memory *mem;
+  GstRKV4l2Memory *mem;
   gint i;
 
   g_return_if_fail (allocator->memory == V4L2_MEMORY_USERPTR);
 
   for (i = 0; i < group->n_mem; i++) {
-    mem = (GstV4l2Memory *) group->mem[i];
+    mem = (GstRKV4l2Memory *) group->mem[i];
 
     GST_LOG_OBJECT (allocator, "clearing USERPTR %p plane %d size %"
         G_GSIZE_FORMAT, mem->data, i, mem->mem.size);
@@ -1029,10 +1032,10 @@ gst_v4l2_allocator_clear_userptr (GstV4l2Allocator * allocator,
   }
 }
 
-GstV4l2MemoryGroup *
-gst_v4l2_allocator_alloc_userptr (GstV4l2Allocator * allocator)
+GstRKV4l2MemoryGroup *
+gst_v4l2_allocator_alloc_userptr (GstRKV4l2Allocator * allocator)
 {
-  GstV4l2MemoryGroup *group;
+  GstRKV4l2MemoryGroup *group;
   gint i;
 
   g_return_val_if_fail (allocator->memory == V4L2_MEMORY_USERPTR, NULL);
@@ -1063,10 +1066,10 @@ gst_v4l2_allocator_alloc_userptr (GstV4l2Allocator * allocator)
 }
 
 gboolean
-gst_v4l2_allocator_import_dmabuf (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group, gint n_mem, GstMemory ** dma_mem)
+gst_v4l2_allocator_import_dmabuf (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group, gint n_mem, GstMemory ** dma_mem)
 {
-  GstV4l2Memory *mem;
+  GstRKV4l2Memory *mem;
   gint i;
 
   g_return_val_if_fail (allocator->memory == V4L2_MEMORY_DMABUF, FALSE);
@@ -1088,7 +1091,7 @@ gst_v4l2_allocator_import_dmabuf (GstV4l2Allocator * allocator,
 
     GST_LOG_OBJECT (allocator, "imported DMABUF as fd %i plane %d", dmafd, i);
 
-    mem = (GstV4l2Memory *) group->mem[i];
+    mem = (GstRKV4l2Memory *) group->mem[i];
 
     /* Update memory */
     mem->mem.maxsize = maxsize;
@@ -1134,11 +1137,11 @@ dup_failed:
 }
 
 gboolean
-gst_v4l2_allocator_import_userptr (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group, gsize img_size, int n_planes,
+gst_v4l2_allocator_import_userptr (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group, gsize img_size, int n_planes,
     gpointer * data, gsize * size)
 {
-  GstV4l2Memory *mem;
+  GstRKV4l2Memory *mem;
   gint i;
 
   g_return_val_if_fail (allocator->memory == V4L2_MEMORY_USERPTR, FALSE);
@@ -1164,7 +1167,7 @@ gst_v4l2_allocator_import_userptr (GstV4l2Allocator * allocator,
     GST_LOG_OBJECT (allocator, "imported USERPTR %p plane %d size %"
         G_GSIZE_FORMAT, data[i], i, psize);
 
-    mem = (GstV4l2Memory *) group->mem[i];
+    mem = (GstRKV4l2Memory *) group->mem[i];
 
     mem->mem.maxsize = maxsize;
     mem->mem.size = psize;
@@ -1196,7 +1199,7 @@ n_mem_missmatch:
 }
 
 void
-gst_v4l2_allocator_flush (GstV4l2Allocator * allocator)
+gst_v4l2_allocator_flush (GstRKV4l2Allocator * allocator)
 {
   gint i;
 
@@ -1206,7 +1209,7 @@ gst_v4l2_allocator_flush (GstV4l2Allocator * allocator)
     goto done;
 
   for (i = 0; i < allocator->count; i++) {
-    GstV4l2MemoryGroup *group = allocator->groups[i];
+    GstRKV4l2MemoryGroup *group = allocator->groups[i];
     gint n;
 
     if (IS_QUEUED (group->buffer)) {
@@ -1224,8 +1227,8 @@ done:
 }
 
 gboolean
-gst_v4l2_allocator_qbuf (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group)
+gst_v4l2_allocator_qbuf (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group)
 {
   gboolean ret = TRUE;
   gint i;
@@ -1276,14 +1279,14 @@ done:
 }
 
 GstFlowReturn
-gst_v4l2_allocator_dqbuf (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup ** group_out)
+gst_v4l2_allocator_dqbuf (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup ** group_out)
 {
   struct v4l2_buffer buffer = { 0 };
   struct v4l2_plane planes[VIDEO_MAX_PLANES] = { {0} };
   gint i;
 
-  GstV4l2MemoryGroup *group = NULL;
+  GstRKV4l2MemoryGroup *group = NULL;
 
   g_return_val_if_fail (g_atomic_int_get (&allocator->active), GST_FLOW_ERROR);
 
@@ -1404,8 +1407,8 @@ error:
 }
 
 void
-gst_v4l2_allocator_reset_group (GstV4l2Allocator * allocator,
-    GstV4l2MemoryGroup * group)
+gst_v4l2_allocator_reset_group (GstRKV4l2Allocator * allocator,
+    GstRKV4l2MemoryGroup * group)
 {
   switch (allocator->memory) {
     case V4L2_MEMORY_USERPTR:

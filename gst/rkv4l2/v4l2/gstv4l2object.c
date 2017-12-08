@@ -3,7 +3,7 @@
  * Copyright (C) 2001-2002 Ronald Bultje <rbultje@ronald.bitfreak.net>
  *               2006 Edgard Lima <edgard.lima@gmail.com>
  *
- * gstv4l2object.c: base class for V4L2 elements
+ * GstRKV4l2Object.c: base class for V4L2 elements
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -195,7 +195,7 @@ static const GstV4L2FormatDesc gst_v4l2_formats[] = {
 
 #define GST_V4L2_FORMAT_COUNT (G_N_ELEMENTS (gst_v4l2_formats))
 
-static GSList *gst_v4l2_object_get_format_list (GstV4l2Object * v4l2object);
+static GSList *gst_v4l2_object_get_format_list (GstRKV4l2Object * v4l2object);
 
 
 #define GST_TYPE_V4L2_DEVICE_FLAGS (gst_v4l2_device_get_type ())
@@ -395,7 +395,7 @@ gst_v4l2_object_install_m2m_properties_helper (GObjectClass * gobject_class)
           GST_TYPE_STRUCTURE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
-GstV4l2Object *
+GstRKV4l2Object *
 gst_v4l2_object_new (GstElement * element,
     enum v4l2_buf_type type,
     const char *default_device,
@@ -403,12 +403,12 @@ gst_v4l2_object_new (GstElement * element,
     GstV4l2SetInOutFunction set_in_out_func,
     GstV4l2UpdateFpsFunction update_fps_func)
 {
-  GstV4l2Object *v4l2object;
+  GstRKV4l2Object *v4l2object;
 
   /*
    * some default values
    */
-  v4l2object = g_new0 (GstV4l2Object, 1);
+  v4l2object = g_new0 (GstRKV4l2Object, 1);
 
   v4l2object->type = type;
   v4l2object->formats = NULL;
@@ -437,11 +437,12 @@ gst_v4l2_object_new (GstElement * element,
   return v4l2object;
 }
 
-static gboolean gst_v4l2_object_clear_format_list (GstV4l2Object * v4l2object);
+static gboolean gst_v4l2_object_clear_format_list (GstRKV4l2Object *
+    v4l2object);
 
 
 void
-gst_v4l2_object_destroy (GstV4l2Object * v4l2object)
+gst_v4l2_object_destroy (GstRKV4l2Object * v4l2object)
 {
   g_return_if_fail (v4l2object != NULL);
 
@@ -464,7 +465,7 @@ gst_v4l2_object_destroy (GstV4l2Object * v4l2object)
 
 
 static gboolean
-gst_v4l2_object_clear_format_list (GstV4l2Object * v4l2object)
+gst_v4l2_object_clear_format_list (GstRKV4l2Object * v4l2object)
 {
   g_slist_foreach (v4l2object->formats, (GFunc) g_free, NULL);
   g_slist_free (v4l2object->formats);
@@ -498,7 +499,7 @@ gst_v4l2_object_prop_to_cid (guint prop_id)
 }
 
 gboolean
-gst_v4l2_object_set_property_helper (GstV4l2Object * v4l2object,
+gst_v4l2_object_set_property_helper (GstRKV4l2Object * v4l2object,
     guint prop_id, const GValue * value, GParamSpec * pspec)
 {
   switch (prop_id) {
@@ -568,7 +569,7 @@ gst_v4l2_object_set_property_helper (GstV4l2Object * v4l2object,
 
 
 gboolean
-gst_v4l2_object_get_property_helper (GstV4l2Object * v4l2object,
+gst_v4l2_object_get_property_helper (GstRKV4l2Object * v4l2object,
     guint prop_id, GValue * value, GParamSpec * pspec)
 {
   switch (prop_id) {
@@ -664,7 +665,7 @@ gst_v4l2_object_get_property_helper (GstV4l2Object * v4l2object,
 }
 
 static void
-gst_v4l2_get_driver_min_buffers (GstV4l2Object * v4l2object)
+gst_v4l2_get_driver_min_buffers (GstRKV4l2Object * v4l2object)
 {
   struct v4l2_control control = { 0, };
 
@@ -685,7 +686,7 @@ gst_v4l2_get_driver_min_buffers (GstV4l2Object * v4l2object)
 }
 
 gboolean
-gst_v4l2_object_open (GstV4l2Object * v4l2object)
+gst_v4l2_object_open (GstRKV4l2Object * v4l2object)
 {
   if (gst_v4l2_open (v4l2object))
     return TRUE;
@@ -694,7 +695,8 @@ gst_v4l2_object_open (GstV4l2Object * v4l2object)
 }
 
 gboolean
-gst_v4l2_object_open_shared (GstV4l2Object * v4l2object, GstV4l2Object * other)
+gst_v4l2_object_open_shared (GstRKV4l2Object * v4l2object,
+    GstRKV4l2Object * other)
 {
   gboolean ret;
 
@@ -704,7 +706,7 @@ gst_v4l2_object_open_shared (GstV4l2Object * v4l2object, GstV4l2Object * other)
 }
 
 gboolean
-gst_v4l2_object_close (GstV4l2Object * v4l2object)
+gst_v4l2_object_close (GstRKV4l2Object * v4l2object)
 {
   if (!gst_v4l2_close (v4l2object))
     return FALSE;
@@ -722,7 +724,7 @@ gst_v4l2_object_close (GstV4l2Object * v4l2object)
 }
 
 static struct v4l2_fmtdesc *
-gst_v4l2_object_get_format_from_fourcc (GstV4l2Object * v4l2object,
+gst_v4l2_object_get_format_from_fourcc (GstRKV4l2Object * v4l2object,
     guint32 fourcc)
 {
   struct v4l2_fmtdesc *fmt;
@@ -938,7 +940,7 @@ format_cmp_func (gconstpointer a, gconstpointer b)
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 static gboolean
-gst_v4l2_object_fill_format_list (GstV4l2Object * v4l2object,
+gst_v4l2_object_fill_format_list (GstRKV4l2Object * v4l2object,
     enum v4l2_buf_type type)
 {
   gint n;
@@ -1017,7 +1019,7 @@ failed:
   * <code>struct v4l2_fmtdesc</code>.
   */
 static GSList *
-gst_v4l2_object_get_format_list (GstV4l2Object * v4l2object)
+gst_v4l2_object_get_format_list (GstRKV4l2Object * v4l2object)
 {
   if (!v4l2object->formats) {
 
@@ -1456,7 +1458,7 @@ gst_v4l2_object_get_codec_caps (void)
  * @size: location for expected size of the frame or 0 if unknown
  */
 static gboolean
-gst_v4l2_object_get_caps_info (GstV4l2Object * v4l2object, GstCaps * caps,
+gst_v4l2_object_get_caps_info (GstRKV4l2Object * v4l2object, GstCaps * caps,
     struct v4l2_fmtdesc **format, GstVideoInfo * info)
 {
   GstStructure *structure;
@@ -1650,11 +1652,12 @@ unsupported_format:
 }
 
 static gboolean
-gst_v4l2_object_get_nearest_size (GstV4l2Object * v4l2object,
+gst_v4l2_object_get_nearest_size (GstRKV4l2Object * v4l2object,
     guint32 pixelformat, gint * width, gint * height);
 
 static void
-gst_v4l2_object_add_aspect_ratio (GstV4l2Object * v4l2object, GstStructure * s)
+gst_v4l2_object_add_aspect_ratio (GstRKV4l2Object * v4l2object,
+    GstStructure * s)
 {
   struct v4l2_cropcap cropcap;
   int num = 1, den = 1;
@@ -1923,7 +1926,7 @@ done:
 }
 
 static int
-gst_v4l2_object_try_fmt (GstV4l2Object * v4l2object,
+gst_v4l2_object_try_fmt (GstRKV4l2Object * v4l2object,
     struct v4l2_format *try_fmt)
 {
   int fd = v4l2object->video_fd;
@@ -1954,7 +1957,7 @@ error:
 
 
 static void
-gst_v4l2_object_add_interlace_mode (GstV4l2Object * v4l2object,
+gst_v4l2_object_add_interlace_mode (GstRKV4l2Object * v4l2object,
     GstStructure * s, guint32 width, guint32 height, guint32 pixelformat)
 {
   struct v4l2_format fmt;
@@ -2049,7 +2052,7 @@ gst_v4l2_object_fill_colorimetry_list (GValue * list,
 }
 
 static void
-gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
+gst_v4l2_object_add_colorspace (GstRKV4l2Object * v4l2object, GstStructure * s,
     guint32 width, guint32 height, guint32 pixelformat)
 {
   struct v4l2_format fmt;
@@ -2112,7 +2115,7 @@ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
 
 /* The frame interval enumeration code first appeared in Linux 2.6.19. */
 static GstStructure *
-gst_v4l2_object_probe_caps_for_format_and_size (GstV4l2Object * v4l2object,
+gst_v4l2_object_probe_caps_for_format_and_size (GstRKV4l2Object * v4l2object,
     guint32 pixelformat,
     guint32 width, guint32 height, const GstStructure * template)
 {
@@ -2329,7 +2332,7 @@ sort_by_frame_size (GstStructure * s1, GstStructure * s2)
 }
 
 static void
-gst_v4l2_object_update_and_append (GstV4l2Object * v4l2object,
+gst_v4l2_object_update_and_append (GstRKV4l2Object * v4l2object,
     guint32 format, GstCaps * caps, GstStructure * s)
 {
   GstStructure *alt_s = NULL;
@@ -2373,7 +2376,7 @@ gst_v4l2_object_update_and_append (GstV4l2Object * v4l2object,
 }
 
 static GstCaps *
-gst_v4l2_object_probe_caps_for_format (GstV4l2Object * v4l2object,
+gst_v4l2_object_probe_caps_for_format (GstRKV4l2Object * v4l2object,
     guint32 pixelformat, const GstStructure * template)
 {
   GstCaps *ret = gst_caps_new_empty ();
@@ -2597,7 +2600,7 @@ default_frame_sizes:
 }
 
 static gboolean
-gst_v4l2_object_get_nearest_size (GstV4l2Object * v4l2object,
+gst_v4l2_object_get_nearest_size (GstRKV4l2Object * v4l2object,
     guint32 pixelformat, gint * width, gint * height)
 {
   struct v4l2_format fmt;
@@ -2649,7 +2652,7 @@ error:
 }
 
 static gboolean
-gst_v4l2_object_setup_pool (GstV4l2Object * v4l2object, GstCaps * caps)
+gst_v4l2_object_setup_pool (GstRKV4l2Object * v4l2object, GstCaps * caps)
 {
   GstV4l2IOMode mode;
 
@@ -2748,7 +2751,7 @@ gst_v4l2_object_set_stride (GstVideoInfo * info, GstVideoAlignment * align,
 }
 
 static void
-gst_v4l2_object_extrapolate_info (GstV4l2Object * v4l2object,
+gst_v4l2_object_extrapolate_info (GstRKV4l2Object * v4l2object,
     GstVideoInfo * info, GstVideoAlignment * align, gint stride)
 {
   const GstVideoFormatInfo *finfo = info->finfo;
@@ -2783,7 +2786,7 @@ gst_v4l2_object_extrapolate_info (GstV4l2Object * v4l2object,
 }
 
 static void
-gst_v4l2_object_save_format (GstV4l2Object * v4l2object,
+gst_v4l2_object_save_format (GstRKV4l2Object * v4l2object,
     struct v4l2_fmtdesc *fmtdesc, struct v4l2_format *format,
     GstVideoInfo * info, GstVideoAlignment * align)
 {
@@ -2936,7 +2939,7 @@ gst_v4l2_object_extrapolate_stride (const GstVideoFormatInfo * finfo,
 }
 
 static gboolean
-gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
+gst_v4l2_object_set_format_full (GstRKV4l2Object * v4l2object, GstCaps * caps,
     gboolean try_only, GstV4l2Error * error)
 {
   gint fd = v4l2object->video_fd;
@@ -3482,14 +3485,14 @@ pool_failed:
 }
 
 gboolean
-gst_v4l2_object_set_format (GstV4l2Object * v4l2object, GstCaps * caps,
+gst_v4l2_object_set_format (GstRKV4l2Object * v4l2object, GstCaps * caps,
     GstV4l2Error * error)
 {
   return gst_v4l2_object_set_format_full (v4l2object, caps, FALSE, error);
 }
 
 gboolean
-gst_v4l2_object_try_format (GstV4l2Object * v4l2object, GstCaps * caps,
+gst_v4l2_object_try_format (GstRKV4l2Object * v4l2object, GstCaps * caps,
     GstV4l2Error * error)
 {
   return gst_v4l2_object_set_format_full (v4l2object, caps, TRUE, error);
@@ -3506,7 +3509,8 @@ gst_v4l2_object_try_format (GstV4l2Object * v4l2object, GstCaps * caps,
  * Returns: %TRUE on success, %FALSE on failure.
  */
 gboolean
-gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object, GstVideoInfo * info)
+gst_v4l2_object_acquire_format (GstRKV4l2Object * v4l2object,
+    GstVideoInfo * info)
 {
   struct v4l2_fmtdesc *fmtdesc;
   struct v4l2_format fmt;
@@ -3621,7 +3625,7 @@ unsupported_format:
 }
 
 gboolean
-gst_v4l2_object_set_crop (GstV4l2Object * obj)
+gst_v4l2_object_set_crop (GstRKV4l2Object * obj)
 {
   struct v4l2_crop crop = { 0 };
 
@@ -3659,7 +3663,7 @@ gst_v4l2_object_set_crop (GstV4l2Object * obj)
 }
 
 gboolean
-gst_v4l2_object_caps_equal (GstV4l2Object * v4l2object, GstCaps * caps)
+gst_v4l2_object_caps_equal (GstRKV4l2Object * v4l2object, GstCaps * caps)
 {
   GstStructure *config;
   GstCaps *oldcaps;
@@ -3679,7 +3683,7 @@ gst_v4l2_object_caps_equal (GstV4l2Object * v4l2object, GstCaps * caps)
 }
 
 gboolean
-gst_v4l2_object_unlock (GstV4l2Object * v4l2object)
+gst_v4l2_object_unlock (GstRKV4l2Object * v4l2object)
 {
   gboolean ret = TRUE;
 
@@ -3692,7 +3696,7 @@ gst_v4l2_object_unlock (GstV4l2Object * v4l2object)
 }
 
 gboolean
-gst_v4l2_object_unlock_stop (GstV4l2Object * v4l2object)
+gst_v4l2_object_unlock_stop (GstRKV4l2Object * v4l2object)
 {
   gboolean ret = TRUE;
 
@@ -3705,7 +3709,7 @@ gst_v4l2_object_unlock_stop (GstV4l2Object * v4l2object)
 }
 
 gboolean
-gst_v4l2_object_stop (GstV4l2Object * v4l2object)
+gst_v4l2_object_stop (GstRKV4l2Object * v4l2object)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "stopping");
 
@@ -3728,7 +3732,7 @@ done:
 }
 
 GstCaps *
-gst_v4l2_object_probe_caps (GstV4l2Object * v4l2object, GstCaps * filter)
+gst_v4l2_object_probe_caps (GstRKV4l2Object * v4l2object, GstCaps * filter)
 {
   GstCaps *ret;
   GSList *walk;
@@ -3773,7 +3777,7 @@ gst_v4l2_object_probe_caps (GstV4l2Object * v4l2object, GstCaps * filter)
 }
 
 GstCaps *
-gst_v4l2_object_get_caps (GstV4l2Object * v4l2object, GstCaps * filter)
+gst_v4l2_object_get_caps (GstRKV4l2Object * v4l2object, GstCaps * filter)
 {
   GstCaps *ret;
 
@@ -3793,7 +3797,7 @@ gst_v4l2_object_get_caps (GstV4l2Object * v4l2object, GstCaps * filter)
 }
 
 gboolean
-gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
+gst_v4l2_object_decide_allocation (GstRKV4l2Object * obj, GstQuery * query)
 {
   GstCaps *caps;
   GstBufferPool *pool = NULL, *other_pool = NULL;
@@ -4067,7 +4071,7 @@ no_downstream_pool:
 }
 
 gboolean
-gst_v4l2_object_propose_allocation (GstV4l2Object * obj, GstQuery * query)
+gst_v4l2_object_propose_allocation (GstRKV4l2Object * obj, GstQuery * query)
 {
   GstBufferPool *pool;
   /* we need at least 2 buffers to operate */

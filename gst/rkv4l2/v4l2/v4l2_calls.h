@@ -93,26 +93,26 @@
   }
 
 /* open/close the device */
-gboolean gst_v4l2_open (GstV4l2Object * v4l2object);
-gboolean gst_v4l2_dup (GstV4l2Object * v4l2object, GstV4l2Object * other);
-gboolean gst_v4l2_close (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_open (GstRKV4l2Object * v4l2object);
+gboolean gst_v4l2_dup (GstRKV4l2Object * v4l2object, GstRKV4l2Object * other);
+gboolean gst_v4l2_close (GstRKV4l2Object * v4l2object);
 
 /* input/output */
-gboolean gst_v4l2_get_input (GstV4l2Object * v4l2object, gint * input);
-gboolean gst_v4l2_set_input (GstV4l2Object * v4l2object, gint input);
-gboolean gst_v4l2_get_output (GstV4l2Object * v4l2object, gint * output);
-gboolean gst_v4l2_set_output (GstV4l2Object * v4l2object, gint output);
+gboolean gst_v4l2_get_input (GstRKV4l2Object * v4l2object, gint * input);
+gboolean gst_v4l2_set_input (GstRKV4l2Object * v4l2object, gint input);
+gboolean gst_v4l2_get_output (GstRKV4l2Object * v4l2object, gint * output);
+gboolean gst_v4l2_set_output (GstRKV4l2Object * v4l2object, gint output);
 
 /* attribute control */
-gboolean gst_v4l2_get_attribute (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_get_attribute (GstRKV4l2Object * v4l2object,
     int attribute, int *value);
-gboolean gst_v4l2_set_attribute (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_set_attribute (GstRKV4l2Object * v4l2object,
     int attribute, const int value);
 
-gboolean gst_v4l2_set_controls (GstV4l2Object * v4l2object,
+gboolean gst_v4l2_set_controls (GstRKV4l2Object * v4l2object,
     GstStructure * controls);
 
-gboolean gst_v4l2_get_capabilities (GstV4l2Object * v4l2object);
+gboolean gst_v4l2_get_capabilities (GstRKV4l2Object * v4l2object);
 
 
 #endif /* __V4L2_CALLS_H__ */

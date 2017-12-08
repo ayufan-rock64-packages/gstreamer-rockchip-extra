@@ -55,7 +55,7 @@ struct _GstRKCamSrc
   GstPushSrc pushsrc;
 
   /*< private > */
-  GstV4l2Object *v4l2object;
+  GstRKV4l2Object *v4l2object;
   guint media_index;
   struct media_entity *isp_subdev;
   struct media_entity *phy_subdev;

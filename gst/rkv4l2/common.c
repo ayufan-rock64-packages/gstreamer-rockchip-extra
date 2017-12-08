@@ -76,25 +76,25 @@ rk_common_v4l2device_find_by_name (const char *name, char *ret_name)
  */
 
 gboolean
-rk_common_v4l2_set_rotation (GstV4l2Object * v4l2object, gint rotate)
+rk_common_v4l2_set_rotation (GstRKV4l2Object * v4l2object, gint rotate)
 {
   return gst_v4l2_set_attribute (v4l2object, V4L2_CID_ROTATE, rotate);
 }
 
 gboolean
-rk_common_v4l2_set_vflip (GstV4l2Object * v4l2object, gboolean flip)
+rk_common_v4l2_set_vflip (GstRKV4l2Object * v4l2object, gboolean flip)
 {
   return gst_v4l2_set_attribute (v4l2object, V4L2_CID_VFLIP, flip);
 }
 
 gboolean
-rk_common_v4l2_set_hflip (GstV4l2Object * v4l2object, gboolean flip)
+rk_common_v4l2_set_hflip (GstRKV4l2Object * v4l2object, gboolean flip)
 {
   return gst_v4l2_set_attribute (v4l2object, V4L2_CID_HFLIP, flip);
 }
 
 gboolean
-rk_common_v4l2_set_selection (GstV4l2Object * v4l2object,
+rk_common_v4l2_set_selection (GstRKV4l2Object * v4l2object,
     struct v4l2_rect * rect, gboolean compose)
 {
   struct v4l2_selection s = { 0 };
@@ -171,7 +171,7 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
 }
 
 gboolean
-rk_common_set_property_helper (GstV4l2Object * v4l2object,
+rk_common_set_property_helper (GstRKV4l2Object * v4l2object,
     guint prop_id, const GValue * value, GParamSpec * pspec)
 {
   char *string_val = NULL;
@@ -244,7 +244,7 @@ rk_common_set_property_helper (GstV4l2Object * v4l2object,
 }
 
 gboolean
-rk_common_get_property_helper (GstV4l2Object * v4l2object,
+rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
     guint prop_id, GValue * value, GParamSpec * pspec)
 {
   char out[32];
@@ -322,7 +322,7 @@ rk_common_get_property_helper (GstV4l2Object * v4l2object,
 }
 
 void
-rk_common_new (GstV4l2Object * v4l2object)
+rk_common_new (GstRKV4l2Object * v4l2object)
 {
   /* common */
   memset (&v4l2object->input_crop, 0, sizeof (GstVideoRectangle));

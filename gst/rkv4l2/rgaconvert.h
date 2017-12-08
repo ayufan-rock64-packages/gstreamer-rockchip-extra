@@ -30,8 +30,8 @@ struct _GstRGAConvert
   GstBaseTransform parent;
 
   /* < private > */
-  GstV4l2Object *v4l2output;
-  GstV4l2Object *v4l2capture;
+  GstRKV4l2Object *v4l2output;
+  GstRKV4l2Object *v4l2capture;
 
   /* pads */
   GstCaps *probed_srccaps;

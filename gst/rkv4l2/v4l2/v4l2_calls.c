@@ -48,7 +48,7 @@ GST_DEBUG_CATEGORY_EXTERN (v4l2_debug);
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 gboolean
-gst_v4l2_get_capabilities (GstV4l2Object * v4l2object)
+gst_v4l2_get_capabilities (GstRKV4l2Object * v4l2object)
 {
   GstElement *e;
 
@@ -116,7 +116,7 @@ gst_v4l2_normalise_control_name (gchar * name)
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 static gboolean
-gst_v4l2_fill_lists (GstV4l2Object * v4l2object)
+gst_v4l2_fill_lists (GstRKV4l2Object * v4l2object)
 {
   gint n, next;
   struct v4l2_queryctrl control = { 0, };
@@ -195,7 +195,7 @@ gst_v4l2_fill_lists (GstV4l2Object * v4l2object)
 
 
 static void
-gst_v4l2_empty_lists (GstV4l2Object * v4l2object)
+gst_v4l2_empty_lists (GstRKV4l2Object * v4l2object)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "deleting enumerations");
 
@@ -203,7 +203,7 @@ gst_v4l2_empty_lists (GstV4l2Object * v4l2object)
 }
 
 static void
-gst_v4l2_adjust_buf_type (GstV4l2Object * v4l2object)
+gst_v4l2_adjust_buf_type (GstRKV4l2Object * v4l2object)
 {
   /* when calling gst_v4l2_object_new the user decides the initial type
    * so adjust it if multi-planar is supported
@@ -239,7 +239,7 @@ gst_v4l2_adjust_buf_type (GstV4l2Object * v4l2object)
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 gboolean
-gst_v4l2_open (GstV4l2Object * v4l2object)
+gst_v4l2_open (GstRKV4l2Object * v4l2object)
 {
   struct stat st;
   int libv4l2_fd;
@@ -356,7 +356,7 @@ error:
 }
 
 gboolean
-gst_v4l2_dup (GstV4l2Object * v4l2object, GstV4l2Object * other)
+gst_v4l2_dup (GstRKV4l2Object * v4l2object, GstRKV4l2Object * other)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "Trying to dup device %s",
       other->videodev);
@@ -402,7 +402,7 @@ not_open:
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 gboolean
-gst_v4l2_close (GstV4l2Object * v4l2object)
+gst_v4l2_close (GstRKV4l2Object * v4l2object)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "Trying to close %s",
       v4l2object->videodev);
@@ -426,7 +426,7 @@ gst_v4l2_close (GstV4l2Object * v4l2object)
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 gboolean
-gst_v4l2_get_attribute (GstV4l2Object * v4l2object,
+gst_v4l2_get_attribute (GstRKV4l2Object * v4l2object,
     int attribute_num, int *value)
 {
   struct v4l2_control control = { 0, };
@@ -463,7 +463,7 @@ ctrl_failed:
  * return value: TRUE on success, FALSE on error
  ******************************************************/
 gboolean
-gst_v4l2_set_attribute (GstV4l2Object * v4l2object,
+gst_v4l2_set_attribute (GstRKV4l2Object * v4l2object,
     int attribute_num, const int value)
 {
   struct v4l2_control control = { 0, };
@@ -494,7 +494,7 @@ ctrl_failed:
 static gboolean
 set_control (GQuark field_id, const GValue * value, gpointer user_data)
 {
-  GstV4l2Object *v4l2object = user_data;
+  GstRKV4l2Object *v4l2object = user_data;
   GQuark normalised_field_id;
   gpointer *d;
 
@@ -534,13 +534,13 @@ set_control (GQuark field_id, const GValue * value, gpointer user_data)
 }
 
 gboolean
-gst_v4l2_set_controls (GstV4l2Object * v4l2object, GstStructure * controls)
+gst_v4l2_set_controls (GstRKV4l2Object * v4l2object, GstStructure * controls)
 {
   return gst_structure_foreach (controls, set_control, v4l2object);
 }
 
 gboolean
-gst_v4l2_get_input (GstV4l2Object * v4l2object, gint * input)
+gst_v4l2_get_input (GstRKV4l2Object * v4l2object, gint * input)
 {
   gint n;
 
@@ -571,7 +571,7 @@ input_failed:
 }
 
 gboolean
-gst_v4l2_set_input (GstV4l2Object * v4l2object, gint input)
+gst_v4l2_set_input (GstRKV4l2Object * v4l2object, gint input)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "trying to set input to %d", input);
 
@@ -597,7 +597,7 @@ input_failed:
 }
 
 gboolean
-gst_v4l2_get_output (GstV4l2Object * v4l2object, gint * output)
+gst_v4l2_get_output (GstRKV4l2Object * v4l2object, gint * output)
 {
   gint n;
 
@@ -628,7 +628,7 @@ output_failed:
 }
 
 gboolean
-gst_v4l2_set_output (GstV4l2Object * v4l2object, gint output)
+gst_v4l2_set_output (GstRKV4l2Object * v4l2object, gint output)
 {
   GST_DEBUG_OBJECT (v4l2object->element, "trying to set output to %d", output);
 

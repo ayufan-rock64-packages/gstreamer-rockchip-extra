@@ -27,9 +27,9 @@
 
 #include <gst/gst.h>
 
-typedef struct _GstV4l2BufferPool GstV4l2BufferPool;
-typedef struct _GstV4l2BufferPoolClass GstV4l2BufferPoolClass;
-typedef struct _GstV4l2Meta GstV4l2Meta;
+typedef struct _GstV4l2BufferPool GstRKV4l2BufferPool;
+typedef struct _GstV4l2BufferPoolClass GstRKV4l2BufferPoolClass;
+typedef struct _GstV4l2Meta GstRKV4l2Meta;
 
 #include "gstv4l2object.h"
 #include "gstv4l2allocator.h"
@@ -39,8 +39,8 @@ GST_DEBUG_CATEGORY_EXTERN (v4l2buffer_debug);
 G_BEGIN_DECLS
 #define GST_TYPE_V4L2_BUFFER_POOL      (gst_v4l2_buffer_pool_get_type())
 #define GST_IS_V4L2_BUFFER_POOL(obj)   (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GST_TYPE_V4L2_BUFFER_POOL))
-#define GST_V4L2_BUFFER_POOL(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_V4L2_BUFFER_POOL, GstV4l2BufferPool))
-#define GST_V4L2_BUFFER_POOL_CAST(obj) ((GstV4l2BufferPool*)(obj))
+#define GST_V4L2_BUFFER_POOL(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_V4L2_BUFFER_POOL, GstRKV4l2BufferPool))
+#define GST_V4L2_BUFFER_POOL_CAST(obj) ((GstRKV4l2BufferPool*)(obj))
 /* This flow return is used to indicated that the last buffer of a
  * drain or a resoltuion change has been found. This should normally
  * only occure for mem-2-mem devices. */
@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 {
   GstBufferPool parent;
 
-  GstV4l2Object *obj;           /* the v4l2 object */
+  GstRKV4l2Object *obj;           /* the v4l2 object */
   gint video_fd;                /* a dup(2) of the v4l2object's video_fd */
   GstPoll *poll;                /* a poll for video_fd */
   GstPollFD pollfd;
@@ -62,7 +62,7 @@ G_BEGIN_DECLS
   gboolean empty;
   GCond empty_cond;
 
-  GstV4l2Allocator *vallocator;
+  GstRKV4l2Allocator *vallocator;
   GstAllocator *allocator;
   GstAllocationParams params;
   GstBufferPool *other_pool;
@@ -96,14 +96,14 @@ struct _GstV4l2BufferPoolClass
 
 GType gst_v4l2_buffer_pool_get_type (void);
 
-GstBufferPool *gst_v4l2_buffer_pool_new (GstV4l2Object * obj, GstCaps * caps);
+GstBufferPool *gst_v4l2_buffer_pool_new (GstRKV4l2Object * obj, GstCaps * caps);
 
-GstFlowReturn gst_v4l2_buffer_pool_process (GstV4l2BufferPool * bpool,
+GstFlowReturn gst_v4l2_buffer_pool_process (GstRKV4l2BufferPool * bpool,
     GstBuffer ** buf);
 
-void gst_v4l2_buffer_pool_set_other_pool (GstV4l2BufferPool * pool,
+void gst_v4l2_buffer_pool_set_other_pool (GstRKV4l2BufferPool * pool,
     GstBufferPool * other_pool);
-void gst_v4l2_buffer_pool_copy_at_threshold (GstV4l2BufferPool * pool,
+void gst_v4l2_buffer_pool_copy_at_threshold (GstRKV4l2BufferPool * pool,
     gboolean copy);
 
 G_END_DECLS
