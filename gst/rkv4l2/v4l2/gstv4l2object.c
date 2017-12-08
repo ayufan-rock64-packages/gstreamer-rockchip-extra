@@ -2982,8 +2982,8 @@ gst_v4l2_object_set_format_full (GstRKV4l2Object * v4l2object, GstCaps * caps,
     v4l2object->input_crop.y = 0;
     v4l2object->input_crop.w = width;
     v4l2object->input_crop.h = height;
-    width = GST_ROUND_UP_N (width, 32);
-    height = GST_ROUND_UP_N (height, 32);
+    width = GST_ROUND_UP_N (width, 16);
+    height = GST_ROUND_UP_N (height, 16);
   }
 
   /* if encoded format (GST_VIDEO_INFO_N_PLANES return 0)
