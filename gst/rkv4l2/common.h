@@ -53,8 +53,6 @@ enum mipi_dphy_sy_pads
     PROP_DISABLE_AUTOCONF, \
     PROP_VIDEO_CROP, \
     PROP_VIDEO_COMPOSE, \
-    PROP_SENSOR_CROP, \
-    PROP_SENSOR_NAME, \
     PROP_DISABLE_3A
 
 #define RK_V4L2_OBJECT \
@@ -69,10 +67,8 @@ enum mipi_dphy_sy_pads
   /* Rockchip ISP */ \
   gboolean disable_autoconf; \
   gboolean disable_3A; \
-  gchar *sensor_name; \
   GstVideoRectangle video_crop; \
-  GstVideoRectangle video_compose; \
-  GstVideoRectangle sensor_crop;
+  GstVideoRectangle video_compose;
 
 struct _GstV4l2Object;
 

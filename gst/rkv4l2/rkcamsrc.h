@@ -58,6 +58,8 @@ struct _GstRKCamSrc
   GstRKV4l2Object *v4l2object;
   guint media_index;
   struct media_entity *isp_subdev;
+  struct media_entity *isp_params_subdev;
+  struct media_entity *isp_stats_subdev;
   struct media_entity *phy_subdev;
   struct media_entity *sensor_subdev;
 

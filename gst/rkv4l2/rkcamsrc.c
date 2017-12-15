@@ -359,18 +359,12 @@ gst_rkcamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
 }
 
 static void
-gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
+gst_rkcamsrc_set_crop_window (GstRKCamSrc * rkcamsrc)
 {
   struct v4l2_rect rect;
 
   if (rkcamsrc->v4l2object->disable_autoconf)
     return;
-
-  if (rkcamsrc->v4l2object->sensor_crop.w != 0) {
-    gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->sensor_crop, &rect);
-    v4l2_subdev_set_selection (rkcamsrc->sensor_subdev, &rect,
-        RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
-  }
 
   /* input crop */
   v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
@@ -455,33 +449,28 @@ gst_rkcamsrc_set_crop (GstRKCamSrc * rkcamsrc)
 }
 
 static void
-gst_rkcamsrc_set_media (GstRKCamSrc * rkcamsrc)
+gst_rkcamsrc_set_pad_format (GstRKCamSrc * rkcamsrc)
 {
   struct v4l2_mbus_framefmt format;
 
   if (rkcamsrc->v4l2object->disable_autoconf)
     return;
 
-  /* TODO: should calculate? */
-  format.width = GST_V4L2_WIDTH (rkcamsrc->v4l2object);
-  format.height = GST_V4L2_HEIGHT (rkcamsrc->v4l2object);
-  format.field = V4L2_FIELD_NONE;
-  v4l2_subdev_set_format (rkcamsrc->sensor_subdev, &format, 0,
-      V4L2_SUBDEV_FORMAT_ACTIVE);
+  /* read format from sensor */
   v4l2_subdev_get_format (rkcamsrc->sensor_subdev, &format, 0,
       V4L2_SUBDEV_FORMAT_ACTIVE);
 
   /* propagate to dphy */
   v4l2_subdev_set_format (rkcamsrc->phy_subdev, &format, MIPI_DPHY_SY_PAD_SINK,
       V4L2_SUBDEV_FORMAT_ACTIVE);
-  v4l2_subdev_set_format (rkcamsrc->phy_subdev, &format,
+  v4l2_subdev_get_format (rkcamsrc->phy_subdev, &format,
       MIPI_DPHY_SY_PAD_SOURCE, V4L2_SUBDEV_FORMAT_ACTIVE);
 
   /* propagate to rkisp */
   v4l2_subdev_set_format (rkcamsrc->isp_subdev, &format,
       RKISP1_ISP_PAD_SINK, V4L2_SUBDEV_FORMAT_ACTIVE);
   format.code = MEDIA_BUS_FMT_YUYV8_2X8;
-  v4l2_subdev_set_format (rkcamsrc->isp_subdev, &format,
+  v4l2_subdev_get_format (rkcamsrc->isp_subdev, &format,
       RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SUBDEV_FORMAT_ACTIVE);
 }
 
@@ -501,8 +490,8 @@ gst_rkcamsrc_set_format (GstRKCamSrc * rkcamsrc, GstCaps * caps)
     return FALSE;
   }
 
-  gst_rkcamsrc_set_media (rkcamsrc);
-  gst_rkcamsrc_set_crop (rkcamsrc);
+  gst_rkcamsrc_set_pad_format (rkcamsrc);
+  gst_rkcamsrc_set_crop_window (rkcamsrc);
 
   return TRUE;
 }

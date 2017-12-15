@@ -156,17 +156,11 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
   g_object_class_install_property (gobject_class, PROP_DISABLE_AUTOCONF,
       g_param_spec_boolean ("disable-autoconf", "disable autoconf",
           " ", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, PROP_SENSOR_NAME,
-      g_param_spec_uint ("sensor-name", "active sensor name",
-          " ", 0, 255, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_VIDEO_COMPOSE,
       g_param_spec_string ("video-compose", "video compose",
           " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_VIDEO_CROP,
       g_param_spec_string ("video-crop", "video crop",
-          " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, PROP_SENSOR_CROP,
-      g_param_spec_string ("sensor-crop", "sensor-crop",
           " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
@@ -218,9 +212,6 @@ rk_common_set_property_helper (GstRKV4l2Object * v4l2object,
     case PROP_DISABLE_AUTOCONF:
       v4l2object->disable_autoconf = g_value_get_boolean (value);
       break;
-    case PROP_SENSOR_NAME:
-      v4l2object->sensor_name = g_value_dup_string (value);
-      break;
     case PROP_VIDEO_COMPOSE:
       string_val = g_value_dup_string (value);
       rk_common_input_string_to_rect (string_val, &v4l2object->video_compose);
@@ -229,11 +220,6 @@ rk_common_set_property_helper (GstRKV4l2Object * v4l2object,
     case PROP_VIDEO_CROP:
       string_val = g_value_dup_string (value);
       rk_common_input_string_to_rect (string_val, &v4l2object->video_crop);
-      g_free (string_val);
-      break;
-    case PROP_SENSOR_CROP:
-      string_val = g_value_dup_string (value);
-      rk_common_input_string_to_rect (string_val, &v4l2object->sensor_crop);
       g_free (string_val);
       break;
     default:
@@ -293,9 +279,6 @@ rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
     case PROP_DISABLE_AUTOCONF:
       g_value_set_boolean (value, v4l2object->disable_autoconf);
       break;
-    case PROP_SENSOR_NAME:
-      g_value_set_string (value, v4l2object->sensor_name);
-      break;
     case PROP_VIDEO_COMPOSE:
       snprintf (out, 32, "%dx%dx%dx%d",
           v4l2object->video_compose.x, v4l2object->video_compose.y,
@@ -306,12 +289,6 @@ rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
       snprintf (out, 32, "%dx%dx%dx%d",
           v4l2object->video_crop.x, v4l2object->video_crop.y,
           v4l2object->video_crop.w, v4l2object->video_crop.h);
-      g_value_set_string (value, out);
-      break;
-    case PROP_SENSOR_CROP:
-      snprintf (out, 32, "%dx%dx%dx%d",
-          v4l2object->sensor_crop.x, v4l2object->sensor_crop.y,
-          v4l2object->sensor_crop.w, v4l2object->sensor_crop.h);
       g_value_set_string (value, out);
       break;
     default:
@@ -337,10 +314,8 @@ rk_common_new (GstRKV4l2Object * v4l2object)
   /* isp */
   v4l2object->disable_3A = TRUE;
   v4l2object->disable_autoconf = FALSE;
-  v4l2object->sensor_name = NULL;
   memset (&v4l2object->video_compose, 0, sizeof (GstVideoRectangle));
   memset (&v4l2object->video_crop, 0, sizeof (GstVideoRectangle));
-  memset (&v4l2object->sensor_crop, 0, sizeof (GstVideoRectangle));
 }
 
 /*
