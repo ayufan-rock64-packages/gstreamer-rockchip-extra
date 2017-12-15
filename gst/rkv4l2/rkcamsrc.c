@@ -713,19 +713,19 @@ gst_rkcamsrc_start (GstBaseSrc * src)
   rkcamsrc->isp_subdev =
       rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
       "rkisp1-isp-subdev");
-  rkcamsrc->phy_subdev =
+  rkcamsrc->isp_params_subdev =
       rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
       "rkisp1-input-params");
+  rkcamsrc->isp_stats_subdev =
+      rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
+      "rkisp1-statistics");
+  rkcamsrc->phy_subdev =
+      rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
+      "rockchip-sy-mipi-dphy");
 
-  if (rkcamsrc->v4l2object->sensor_name)
-    rkcamsrc->sensor_subdev =
-        rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
-        rkcamsrc->v4l2object->sensor_name);
-  else
-    /* assume the last enity is sensor */
-    rkcamsrc->sensor_subdev =
-        rk_common_media_get_last_enity (rkcamsrc->media_index);
-  /* TODO: change link */
+  /* assume the last enity is sensor */
+  rkcamsrc->sensor_subdev =
+      rk_common_media_get_last_enity (rkcamsrc->media_index);
 
   return TRUE;
 }
