@@ -8,6 +8,6 @@ include $(top_srcdir)/common/coverage/lcov.mak
 
 include $(top_srcdir)/common/cruft.mak
 
-check: check-exports
+check:
 
 all-local: check-cruft

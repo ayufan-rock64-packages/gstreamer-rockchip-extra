@@ -1,7 +1,17 @@
 Source: gstreamer1.0-rockchip-extra
 Priority: optional
 Maintainer: Jacob Chen <jacob2.chen@rock-chips.com>
-Build-Depends: debhelper (>= 9), autotools-dev
+Build-Depends: debhelper (>= 9), autotools-dev,
+  pkg-config,
+  libgstreamer1.0-dev (>= 1.8.0),
+  libgstreamer-plugins-base1.0-dev (>= 1.8.0),
+  libx11-dev,
+  libdrm-rockchip1,
+  librockchip-mpp-dev,
+  librockchip-mpp1,
+  librockchip-vpu0,
+  liborc-0.4-dev (>= 0.4.16),
+  libglib2.0-dev (>= 2.32.0)
 Standards-Version: 3.9.8
 Section: libs
 Homepage: http://www.rock-chips.com/
