@@ -1,3 +1,15 @@
+gstreamer1.0-rockchip-extra (20171218-1) UNRELEASED; urgency=medium
+
+  * rkv4l2: makefile: use top_srcdit
+  * rkv4l2: fix compile warning in yocto
+  * rkv4l2: add RK prefix to all v4l2 class
+  * rkv4l2: vpu use 16 bytes algin, correct it
+  * rkcamsrc: correct phy device
+  * rkcamsrc: remove sensor things
+  * readme: update for rkcamsrc
+
+ -- Jacob Chen <jacob2.chen@rock-chips.com>  Mon, 18 Dec 2017 18:21:57 +0800
+
 gstreamer1.0-rockchip-extra (1.10-1) testing; urgency=medium
 
   * First version
