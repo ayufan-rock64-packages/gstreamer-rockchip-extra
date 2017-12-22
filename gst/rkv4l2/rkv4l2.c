@@ -42,10 +42,9 @@
 #include "ext/videodev2.h"
 #include "v4l2-utils.h"
 
-#include "gstv4l2object.h"
-#include "common.h"
-#include "rkcamsrc.h"
-#include "rgaconvert.h"
+#include "v4l2/gstv4l2object.h"
+#include "rkcamsrc/rkcamsrc.h"
+#include "rgaconvert/rgaconvert.h"
 
 /* used in v4l2_calls.c and v4l2src_calls.c */
 GST_DEBUG_CATEGORY (v4l2_debug);

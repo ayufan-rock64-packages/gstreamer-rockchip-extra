@@ -156,12 +156,6 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
   g_object_class_install_property (gobject_class, PROP_DISABLE_AUTOCONF,
       g_param_spec_boolean ("disable-autoconf", "disable autoconf",
           " ", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, PROP_VIDEO_COMPOSE,
-      g_param_spec_string ("video-compose", "video compose",
-          " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class, PROP_VIDEO_CROP,
-      g_param_spec_string ("video-crop", "video crop",
-          " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 gboolean
@@ -212,16 +206,6 @@ rk_common_set_property_helper (GstRKV4l2Object * v4l2object,
     case PROP_DISABLE_AUTOCONF:
       v4l2object->disable_autoconf = g_value_get_boolean (value);
       break;
-    case PROP_VIDEO_COMPOSE:
-      string_val = g_value_dup_string (value);
-      rk_common_input_string_to_rect (string_val, &v4l2object->video_compose);
-      g_free (string_val);
-      break;
-    case PROP_VIDEO_CROP:
-      string_val = g_value_dup_string (value);
-      rk_common_input_string_to_rect (string_val, &v4l2object->video_crop);
-      g_free (string_val);
-      break;
     default:
       break;
   }
@@ -235,8 +219,20 @@ rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
 {
   char out[32];
 
-  /* common */
+  /* rga */
   switch (prop_id) {
+    case PROP_OUTPUT_ROTATION:
+      g_value_set_uint (value, v4l2object->rotation);
+      break;
+    case PROP_VFLIP:
+      g_value_set_boolean (value, v4l2object->vflip);
+      break;
+    case PROP_HFLIP:
+      g_value_set_boolean (value, v4l2object->hflip);
+      break;
+    case PROP_VPU_STRIDE:
+      g_value_set_boolean (value, v4l2object->vpu_stride);
+      break;
     case PROP_OUTPUT_CROP:
       snprintf (out, 32, "%dx%dx%dx%d",
           v4l2object->output_crop.x, v4l2object->output_crop.y,
@@ -253,24 +249,6 @@ rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
       break;
   }
 
-  /* rga */
-  switch (prop_id) {
-    case PROP_OUTPUT_ROTATION:
-      g_value_set_uint (value, v4l2object->rotation);
-      break;
-    case PROP_VFLIP:
-      g_value_set_boolean (value, v4l2object->vflip);
-      break;
-    case PROP_HFLIP:
-      g_value_set_boolean (value, v4l2object->hflip);
-      break;
-    case PROP_VPU_STRIDE:
-      g_value_set_boolean (value, v4l2object->vpu_stride);
-      break;
-    default:
-      break;
-  }
-
   /* isp */
   switch (prop_id) {
     case PROP_DISABLE_3A:
@@ -278,18 +256,6 @@ rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
       break;
     case PROP_DISABLE_AUTOCONF:
       g_value_set_boolean (value, v4l2object->disable_autoconf);
-      break;
-    case PROP_VIDEO_COMPOSE:
-      snprintf (out, 32, "%dx%dx%dx%d",
-          v4l2object->video_compose.x, v4l2object->video_compose.y,
-          v4l2object->video_compose.w, v4l2object->video_compose.h);
-      g_value_set_string (value, out);
-      break;
-    case PROP_VIDEO_CROP:
-      snprintf (out, 32, "%dx%dx%dx%d",
-          v4l2object->video_crop.x, v4l2object->video_crop.y,
-          v4l2object->video_crop.w, v4l2object->video_crop.h);
-      g_value_set_string (value, out);
       break;
     default:
       break;
@@ -314,90 +280,4 @@ rk_common_new (GstRKV4l2Object * v4l2object)
   /* isp */
   v4l2object->disable_3A = TRUE;
   v4l2object->disable_autoconf = FALSE;
-  memset (&v4l2object->video_compose, 0, sizeof (GstVideoRectangle));
-  memset (&v4l2object->video_crop, 0, sizeof (GstVideoRectangle));
-}
-
-/*
- * media entity
- */
-
-struct
-{
-  int index;
-  struct media_device *device;
-} g_media_data[16];
-
-void
-rk_common_media_init_global_data (void)
-{
-  char path[64];
-  FILE *fp;
-  int i = 0;
-
-  for (i = 0; i < 16; i++) {
-    g_media_data[i].index = -1;
-  }
-
-  i = 0;
-  while (i < 16) {
-    snprintf (path, 64, "/dev/media%d", i);
-
-    fp = fopen (path, "r");
-    if (!fp)
-      break;
-    fclose (fp);
-
-    g_media_data[i].index = i;
-    g_media_data[i].device = media_device_new (path);
-
-    /* Enumerate entities, pads and links. */
-    media_device_enumerate (g_media_data[i].device);
-
-    i++;
-  }
-}
-
-guint
-rk_common_media_find_by_vnode (const char *vnode)
-{
-  int i, j;
-
-  for (i = 0; i < 16; i++) {
-    unsigned int nents;
-
-    if (g_media_data[i].index == -1)
-      break;
-
-    nents = media_get_entities_count (g_media_data[i].device);
-    for (j = 0; j < nents; ++j) {
-      struct media_entity *entity =
-          media_get_entity (g_media_data[i].device, j);
-      const char *devname = media_entity_get_devname (entity);
-
-      if (!strcmp (devname, vnode))
-        return g_media_data[i].index;
-    }
-  }
-
-  return -1;
-}
-
-struct media_entity *
-rk_common_media_find_subdev_by_name (guint index, const char *subdev_name)
-{
-  return media_get_entity_by_name (g_media_data[index].device, subdev_name,
-      strlen (subdev_name));
-}
-
-struct media_entity *
-rk_common_media_get_last_enity (guint index)
-{
-  struct media_entity *entity;
-  int nents;
-
-  nents = media_get_entities_count (g_media_data[index].device);
-  entity = media_get_entity (g_media_data[index].device, nents - 1);
-
-  return entity;
 }

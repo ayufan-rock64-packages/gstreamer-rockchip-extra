@@ -27,6 +27,8 @@
 #include <gstv4l2object.h>
 #include <gstv4l2bufferpool.h>
 
+#include "rkcamsrc/media.h"
+
 GST_DEBUG_CATEGORY_EXTERN (rkcamsrc_debug);
 
 G_BEGIN_DECLS
