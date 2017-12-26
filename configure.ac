@@ -405,6 +405,7 @@ AC_CONFIG_FILES(
 Makefile
 gst-libs/Makefile
 gst-libs/gst/Makefile
+gst-libs/rkisp1/Makefile
 gst/Makefile
 gst/rkximage/Makefile
 gst/kms/Makefile
