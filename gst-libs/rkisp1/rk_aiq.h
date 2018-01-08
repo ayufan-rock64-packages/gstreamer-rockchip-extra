@@ -1,9 +1,6 @@
 /*
- * Copyright (c) 2017, Fuzhou Rockchip Electronics Co., Ltd
- *
- * Based on Intel IPU3 HAL by Intel Corporation.
- *
  * Copyright (C) 2015 - 2017 Intel Corporation.
+ * Copyright (c) 2017, Fuzhou Rockchip Electronics Co., Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,10 +53,24 @@ LIBEXPORT void
 rk_aiq_deinit(rk_aiq *ctx);
 
 /*!
+ * \brief Manual AEC limit parameters.
+ */
+typedef struct
+{
+    int manual_exposure_time_min;             /*!< Optional. Minimum exposure time in microseconds. -1 if NA. */
+    int manual_exposure_time_max;             /*!< Optional. Maximum exposure time in microseconds. -1 if NA. */
+    int manual_frame_time_us_min;             /*!< Optional. Manual minimum frame length in microseconds. Defines maximum frame rate -1 if NA. */
+    int manual_frame_time_us_max;             /*!< Optional. Manual maximum frame length in microseconds. Defines minimum frame rate. -1 if NA. */
+    short manual_iso_min;                     /*!< Optional. Manual minimum ISO. -1 if NA. */
+    short manual_iso_max;                     /*!< Optional. Manual maximum ISO. -1 if NA. */
+} rk_aiq_ae_manual_limits;
+
+/*!
  *  \brief Input parameter structure for AE algorithm.
  */
 typedef struct
 {
+    unsigned int num_exposures;                                 /*!< Mandatory. The number of exposure outputs to have. Must be positive. One for LDR, two or more for HDR/exposure bracketing. */
     rk_aiq_frame_use frame_use;                                 /*!< Mandatory. Target frame type of the AEC calculations (Preview, Still, video etc.). */
     rk_aiq_flash_mode flash_mode;                               /*!< Mandatory. Manual flash mode. If AEC should make flash decision, set mode to rk_aiq_flash_mode_auto. */
     rk_aiq_ae_operation_mode operation_mode;                    /*!< Mandatory. AEC operation mode. */
@@ -69,6 +80,7 @@ typedef struct
     rk_aiq_exposure_sensor_descriptor *sensor_descriptor;       /*!< Mandatory although function will not return error, if not given.
                                                                      Sensor specific descriptor and limits of the used sensor mode for target frame use.
                                                                      AEC will not limit and calculate sensor specific parameters, if not given */
+    rk_aiq_ae_manual_limits *manual_limits;                     /*!< Optional. Manual limits which override limits defined in AEC tunings. */
     rk_aiq_window *window;                                      /*!< Optional. standard coordinate <-1000, 1000>*/
     float ev_shift;                                             /*!< Optional. Exposure Value shift [-4,4]. */
     long *manual_exposure_time_us;                              /*!< Optional. Manual exposure time in microseconds. NULL if NA. Otherwise, array of values
