@@ -38,11 +38,12 @@ Most of the properties are the same as that of v4l2 transform, below are rockchi
 [Pipeline example](https://github.com/rockchip-linux/rk-rootfs-build/blob/master/overlay-debug/usr/local/bin/test_camera.sh)
 
 Most of the properties are the same as that of v4l2src, below are rockchip extend properties:
-* `disable-autoconf` : If false, this plugin will set a default pad-format/selection for isp_subdev/mainpath/selfpath, to make the media pipeline work out-of-box: (default : false)
-* `disable-3A` : If false, 3A will be enabled, it will read IQ params from `/etc/cam_iq.xml` : (default : false)
+* `disable-autoconf` : If false, this plugin will init pad format/selection for isp_subdev/sensor, to make the media pipeline work out-of-box: (default : false)
+* `tuning-xml-path` : tuning xml file, needed by 3A : (default : "/etc/cam_iq.xml")
+* `isp-mode` : "0A" to disable 3A, "2A" to enable AWB/AE, ~~"3A" to enable AWB/AE/AF~~ : (default : "false")
 * `input-crop` : [Selection-crop](https://01.org/linuxgraphics/gfx-docs/drm/media/uapi/v4l/selection-api-003.html), should be "left"x"top"x"width"x"height": (optional)
 
 > NOTE: DO NOT RELY ON `disable-autoconf=false`!  
 > This feature is only used to make debug conveniently.  
 > rkcamsrc plugin is not designed as a CamHal. It's more like `v4l2-ctl`, just a simple capture program.  
-> The use cases are divers, please handle `media-controller` and `pad format/selection` in APP level.
+> Since the use cases are divers, please handle `media-controller` and `pad format/selection` in APP level.

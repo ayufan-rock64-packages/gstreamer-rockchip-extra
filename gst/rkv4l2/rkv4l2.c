@@ -71,9 +71,6 @@ plugin_init (GstPlugin * plugin)
       )
     return FALSE;
 
-  /* TODO: will it released? */
-  rk_common_media_init_global_data ();
-
   return TRUE;
 }
 

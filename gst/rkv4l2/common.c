@@ -1,3 +1,23 @@
+/*
+ * Copyright 2017 Rockchip Electronics Co., Ltd
+ *     Author: Jacob Chen <jacob2.chen@rock-chips.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -20,7 +40,7 @@ enum
  * utils
  */
 static void
-rk_common_input_string_to_rect (char *input, GstVideoRectangle * rect)
+__input_string_to_rect (char *input, GstVideoRectangle * rect)
 {
   char delims[] = "x";
   char *result = NULL;
@@ -121,6 +141,23 @@ rk_common_v4l2_set_selection (GstRKV4l2Object * v4l2object,
  * properties
  */
 
+GType
+gst_rk_3a_mode_get_type (void)
+{
+  static GType rk_3a_mode = 0;
+
+  if (!rk_3a_mode) {
+    static const GEnumValue modes_3a[] = {
+      {RK_3A_DISABLE, "RK_3A_DISABLE", "0A"},
+      {RK_3A_AEAWB, "RK_3A_AEAWB", "2A"},
+      {RK_3A_AEAWBAF, "RK_3A_AEAWBAF", "3A"},
+      {0, NULL, NULL}
+    };
+    rk_3a_mode = g_enum_register_static ("GstRk3AMode", modes_3a);
+  }
+  return rk_3a_mode;
+}
+
 void
 rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
 {
@@ -150,12 +187,16 @@ rk_common_install_rockchip_properties_helper (GObjectClass * gobject_class)
           FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /* isp */
-  g_object_class_install_property (gobject_class, PROP_DISABLE_3A,
-      g_param_spec_boolean ("disable-3A", "disable 3A",
-          " ", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_3A_MODE,
+      g_param_spec_enum ("isp-mode", "ISP 3A mode", " ",
+          GST_TYPE_RK_3A_MODE, RK_3A_DISABLE,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class, PROP_DISABLE_AUTOCONF,
       g_param_spec_boolean ("disable-autoconf", "disable autoconf",
           " ", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_XML_FILE,
+      g_param_spec_string ("tuning-xml-path", "tuning xml file path",
+          " ", " ", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 gboolean
@@ -168,12 +209,12 @@ rk_common_set_property_helper (GstRKV4l2Object * v4l2object,
   switch (prop_id) {
     case PROP_INPUT_CROP:
       string_val = g_value_dup_string (value);
-      rk_common_input_string_to_rect (string_val, &v4l2object->input_crop);
+      __input_string_to_rect (string_val, &v4l2object->input_crop);
       g_free (string_val);
       break;
     case PROP_OUTPUT_CROP:
       string_val = g_value_dup_string (value);
-      rk_common_input_string_to_rect (string_val, &v4l2object->output_crop);
+      __input_string_to_rect (string_val, &v4l2object->output_crop);
       g_free (string_val);
       break;
     default:
@@ -200,11 +241,14 @@ rk_common_set_property_helper (GstRKV4l2Object * v4l2object,
 
   /* isp */
   switch (prop_id) {
-    case PROP_DISABLE_3A:
-      v4l2object->disable_3A = g_value_get_boolean (value);
+    case PROP_3A_MODE:
+      v4l2object->isp_mode = g_value_get_enum (value);
       break;
     case PROP_DISABLE_AUTOCONF:
       v4l2object->disable_autoconf = g_value_get_boolean (value);
+      break;
+    case PROP_XML_FILE:
+      v4l2object->xml_path = g_value_dup_string (value);
       break;
     default:
       break;
@@ -251,8 +295,8 @@ rk_common_get_property_helper (GstRKV4l2Object * v4l2object,
 
   /* isp */
   switch (prop_id) {
-    case PROP_DISABLE_3A:
-      g_value_set_boolean (value, v4l2object->disable_3A);
+    case PROP_3A_MODE:
+      g_value_set_enum (value, v4l2object->isp_mode);
       break;
     case PROP_DISABLE_AUTOCONF:
       g_value_set_boolean (value, v4l2object->disable_autoconf);
@@ -278,6 +322,6 @@ rk_common_new (GstRKV4l2Object * v4l2object)
   v4l2object->vpu_stride = FALSE;
 
   /* isp */
-  v4l2object->disable_3A = TRUE;
   v4l2object->disable_autoconf = FALSE;
+  v4l2object->xml_path = "/etc/cam_iq.xml";
 }

@@ -27,9 +27,25 @@
 #include <gstv4l2object.h>
 #include <gstv4l2bufferpool.h>
 
-#include "rkcamsrc/media.h"
+#include "media-controller.h"
+#include "rkisp1/thread.h"
 
-GST_DEBUG_CATEGORY_EXTERN (rkcamsrc_debug);
+enum rkisp1_isp_pad
+{
+  RKISP1_ISP_PAD_SINK,
+  RKISP1_ISP_PAD_SINK_PARAMS,
+  RKISP1_ISP_PAD_SOURCE_PATH,
+  RKISP1_ISP_PAD_SOURCE_STATS,
+  /* TODO: meta data pad ? */
+  RKISP1_ISP_PAD_MAX
+};
+
+enum mipi_dphy_sy_pads
+{
+  MIPI_DPHY_SY_PAD_SINK = 0,
+  MIPI_DPHY_SY_PAD_SOURCE,
+  MIPI_DPHY_SY_PADS_NUM,
+};
 
 G_BEGIN_DECLS
 #define GST_TYPE_RKCAMSRC \
@@ -56,24 +72,25 @@ struct _GstRKCamSrc
 {
   GstPushSrc pushsrc;
 
-  /*< private > */
-  GstRKV4l2Object *v4l2object;
-  guint media_index;
-  struct media_entity *isp_subdev;
-  struct media_entity *isp_params_subdev;
-  struct media_entity *isp_stats_subdev;
-  struct media_entity *phy_subdev;
-  struct media_entity *sensor_subdev;
+  struct RKISP1Thread *thread_3a;
 
+  /* media controller */
+  GstMediaController *controller;
+  GstMediaEntity *main_path;
+  GstMediaEntity *self_path;
+  GstMediaEntity *isp_subdev;
+  GstMediaEntity *isp_params_dev;
+  GstMediaEntity *isp_stats_dev;
+  GstMediaEntity *phy_subdev;
+  GstMediaEntity *sensor_subdev;
+
+  /* v4l2 stream */
+  GstRKV4l2Object *capture_object;
+
+  /* v4l2src part */
   guint64 offset;
-
   /* offset adjust after renegotiation */
-  guint64 renegotiation_adjust;
-
   GstClockTime ctrl_time;
-
-  gboolean pending_set_fmt;
-
   /* Timestamp sanity check */
   GstClockTime last_timestamp;
   gboolean has_bad_timestamp;

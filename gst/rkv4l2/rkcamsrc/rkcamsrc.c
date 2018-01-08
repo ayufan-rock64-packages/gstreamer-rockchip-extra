@@ -1,15 +1,36 @@
+/*
+ * Copyright 2017 Rockchip Electronics Co., Ltd
+ *     Author: Jacob Chen <jacob2.chen@rock-chips.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <gst/video/colorbalance.h>
 #include <gst/video/gstvideometa.h>
 #include <gst/video/gstvideopool.h>
 #include <gst/video/videoorientation.h>
-#include <gst/video/colorbalance.h>
 
 #include "common.h"
 #include "rkcamsrc.h"
@@ -20,7 +41,7 @@
 GST_DEBUG_CATEGORY (rkcamsrc_debug);
 #define GST_CAT_DEFAULT rkcamsrc_debug
 
-#define DEFAULT_PROP_DEVICE   "/dev/video0"
+#define DEFAULT_PROP_DEVICE "/dev/video0"
 
 enum
 {
@@ -38,13 +59,8 @@ enum
 
 static guint gst_v4l2_signals[LAST_SIGNAL] = { 0 };
 
-static void gst_rkcamsrc_uri_handler_init (gpointer g_iface,
-    gpointer iface_data);
-
 #define gst_rkcamsrc_parent_class parent_class
-G_DEFINE_TYPE_WITH_CODE (GstRKCamSrc, gst_rkcamsrc, GST_TYPE_PUSH_SRC,
-    G_IMPLEMENT_INTERFACE (GST_TYPE_URI_HANDLER,
-        gst_rkcamsrc_uri_handler_init));
+G_DEFINE_TYPE (GstRKCamSrc, gst_rkcamsrc, GST_TYPE_PUSH_SRC);
 
 static void gst_rkcamsrc_finalize (GstRKCamSrc * rkcamsrc);
 
@@ -59,7 +75,6 @@ static gboolean gst_rkcamsrc_unlock_stop (GstBaseSrc * src);
 static gboolean gst_rkcamsrc_stop (GstBaseSrc * src);
 static gboolean gst_rkcamsrc_set_caps (GstBaseSrc * src, GstCaps * caps);
 static GstCaps *gst_rkcamsrc_get_caps (GstBaseSrc * src, GstCaps * filter);
-static gboolean gst_rkcamsrc_query (GstBaseSrc * bsrc, GstQuery * query);
 static gboolean gst_rkcamsrc_decide_allocation (GstBaseSrc * src,
     GstQuery * query);
 static GstFlowReturn gst_rkcamsrc_create (GstPushSrc * src, GstBuffer ** out);
@@ -94,7 +109,7 @@ gst_rkcamsrc_class_init (GstRKCamSrcClass * klass)
       DEFAULT_PROP_DEVICE);
   rk_common_install_rockchip_properties_helper (gobject_class);
 
-  /**
+    /**
    * GstRKCamSrc::prepare-format:
    * @rkcamsrc: the rkcamsrc instance
    * @fd: the file descriptor of the current device
@@ -116,8 +131,7 @@ gst_rkcamsrc_class_init (GstRKCamSrcClass * klass)
   gst_element_class_set_static_metadata (element_class,
       "ISP Source", "Source/Video", "Reads frames from ISP", " ");
 
-  gst_element_class_add_pad_template
-      (element_class,
+  gst_element_class_add_pad_template (element_class,
       gst_pad_template_new ("src", GST_PAD_SRC, GST_PAD_ALWAYS,
           gst_v4l2_object_get_all_caps ()));
 
@@ -127,7 +141,6 @@ gst_rkcamsrc_class_init (GstRKCamSrcClass * klass)
   basesrc_class->unlock = GST_DEBUG_FUNCPTR (gst_rkcamsrc_unlock);
   basesrc_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_rkcamsrc_unlock_stop);
   basesrc_class->stop = GST_DEBUG_FUNCPTR (gst_rkcamsrc_stop);
-  basesrc_class->query = GST_DEBUG_FUNCPTR (gst_rkcamsrc_query);
   basesrc_class->fixate = GST_DEBUG_FUNCPTR (gst_rkcamsrc_fixate);
   basesrc_class->negotiate = GST_DEBUG_FUNCPTR (gst_rkcamsrc_negotiate);
   basesrc_class->decide_allocation =
@@ -144,7 +157,7 @@ gst_rkcamsrc_class_init (GstRKCamSrcClass * klass)
 static void
 gst_rkcamsrc_init (GstRKCamSrc * rkcamsrc)
 {
-  rkcamsrc->v4l2object = gst_v4l2_object_new (GST_ELEMENT (rkcamsrc),
+  rkcamsrc->capture_object = gst_v4l2_object_new (GST_ELEMENT (rkcamsrc),
       V4L2_BUF_TYPE_VIDEO_CAPTURE, DEFAULT_PROP_DEVICE,
       gst_v4l2_get_input, gst_v4l2_set_input, NULL);
 
@@ -152,15 +165,13 @@ gst_rkcamsrc_init (GstRKCamSrc * rkcamsrc)
   gst_base_src_set_live (GST_BASE_SRC (rkcamsrc), TRUE);
 }
 
-
 static void
 gst_rkcamsrc_finalize (GstRKCamSrc * rkcamsrc)
 {
-  gst_v4l2_object_destroy (rkcamsrc->v4l2object);
+  gst_v4l2_object_destroy (rkcamsrc->capture_object);
 
   G_OBJECT_CLASS (parent_class)->finalize ((GObject *) (rkcamsrc));
 }
-
 
 static void
 gst_rkcamsrc_set_property (GObject * object,
@@ -168,9 +179,9 @@ gst_rkcamsrc_set_property (GObject * object,
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (object);
 
-  if (!gst_v4l2_object_set_property_helper (rkcamsrc->v4l2object,
+  if (!gst_v4l2_object_set_property_helper (rkcamsrc->capture_object,
           prop_id, value, pspec)) {
-    if (!rk_common_set_property_helper (rkcamsrc->v4l2object,
+    if (!rk_common_set_property_helper (rkcamsrc->capture_object,
             prop_id, value, pspec)) {
       switch (prop_id) {
         default:
@@ -187,9 +198,9 @@ gst_rkcamsrc_get_property (GObject * object,
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (object);
 
-  if (!gst_v4l2_object_get_property_helper (rkcamsrc->v4l2object,
+  if (!gst_v4l2_object_get_property_helper (rkcamsrc->capture_object,
           prop_id, value, pspec)) {
-    if (!rk_common_get_property_helper (rkcamsrc->v4l2object,
+    if (!rk_common_get_property_helper (rkcamsrc->capture_object,
             prop_id, value, pspec)) {
       switch (prop_id) {
         default:
@@ -239,7 +250,6 @@ gst_rkcamsrc_fixate (GstBaseSrc * basesrc, GstCaps * caps)
 
   return caps;
 }
-
 
 static gboolean
 gst_rkcamsrc_negotiate (GstBaseSrc * basesrc)
@@ -333,8 +343,7 @@ gst_rkcamsrc_negotiate (GstBaseSrc * basesrc)
   }
   return result;
 
-no_nego_needed:
-  {
+no_nego_needed:{
     GST_DEBUG_OBJECT (basesrc, "no negotiation needed");
     if (thiscaps)
       gst_caps_unref (thiscaps);
@@ -349,7 +358,7 @@ gst_rkcamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
   GstRKV4l2Object *obj;
 
   isps = GST_RKCAMSRC (src);
-  obj = isps->v4l2object;
+  obj = isps->capture_object;
 
   if (!GST_V4L2_IS_OPEN (obj)) {
     return gst_pad_get_pad_template_caps (GST_BASE_SRC_PAD (isps));
@@ -359,60 +368,35 @@ gst_rkcamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
 }
 
 static void
-gst_rkcamsrc_set_crop_window (GstRKCamSrc * rkcamsrc)
+gst_rkcamsrc_set_capture_selection (GstRKCamSrc * rkcamsrc)
 {
   struct v4l2_rect rect;
 
-  if (rkcamsrc->v4l2object->disable_autoconf)
-    return;
-
-  /* input crop */
-  v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
-      RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS, V4L2_SUBDEV_FORMAT_ACTIVE);
-  if (rkcamsrc->v4l2object->input_crop.w != 0) {
-    if (rect.width <
-        rkcamsrc->v4l2object->input_crop.w + rkcamsrc->v4l2object->input_crop.x
-        || rect.height <
-        rkcamsrc->v4l2object->input_crop.h + rkcamsrc->v4l2object->input_crop.y)
-      printf ("ERROR: input crop is bigger than sensor image!\n");
-    else
-      gst_rect_to_v4l2_rect (&rkcamsrc->v4l2object->input_crop, &rect);
-
-    v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
-        V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
-  } else {
-    v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
-        V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
-  }
-
-  /* output crop */
-  v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
-      RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SEL_TGT_CROP_BOUNDS,
-      V4L2_SUBDEV_FORMAT_ACTIVE);
-  v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect,
-      RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
-
   /* video_crop */
-  v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
-      RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS, V4L2_SUBDEV_FORMAT_ACTIVE);
-  rk_common_v4l2_set_selection (rkcamsrc->v4l2object, &rect, FALSE);
+  if (rkcamsrc->capture_object->input_crop.w != 0) {
+    gst_rect_to_v4l2_rect (&rkcamsrc->capture_object->input_crop, &rect);
+    rk_common_v4l2_set_selection (rkcamsrc->capture_object, &rect, FALSE);
+  } else {
+    v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
+        RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS,
+        V4L2_SUBDEV_FORMAT_ACTIVE);
+    rk_common_v4l2_set_selection (rkcamsrc->capture_object, &rect, FALSE);
+  }
 
   /* video_compose */
   v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
       RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_COMPOSE_BOUNDS,
       V4L2_SUBDEV_FORMAT_ACTIVE);
-  rk_common_v4l2_set_selection (rkcamsrc->v4l2object, &rect, TRUE);
+  rk_common_v4l2_set_selection (rkcamsrc->capture_object, &rect, TRUE);
 }
 
 static void
-gst_rkcamsrc_set_pad_format (GstRKCamSrc * rkcamsrc)
+gst_rkcamsrc_init_pad_format_and_selection (GstRKCamSrc * rkcamsrc)
 {
   struct v4l2_mbus_framefmt format;
+  struct v4l2_rect rect;
 
-  if (rkcamsrc->v4l2object->disable_autoconf)
-    return;
-
-  /* read format from sensor */
+  /* read format from sensor_subdev */
   v4l2_subdev_get_format (rkcamsrc->sensor_subdev, &format, 0,
       V4L2_SUBDEV_FORMAT_ACTIVE);
 
@@ -428,6 +412,19 @@ gst_rkcamsrc_set_pad_format (GstRKCamSrc * rkcamsrc)
   format.code = MEDIA_BUS_FMT_YUYV8_2X8;
   v4l2_subdev_get_format (rkcamsrc->isp_subdev, &format,
       RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SUBDEV_FORMAT_ACTIVE);
+
+  /* input crop */
+  v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
+      RKISP1_ISP_PAD_SINK, V4L2_SEL_TGT_CROP_BOUNDS, V4L2_SUBDEV_FORMAT_ACTIVE);
+  v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect, RKISP1_ISP_PAD_SINK,
+      V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
+
+  /* output crop */
+  v4l2_subdev_get_selection (rkcamsrc->isp_subdev, &rect,
+      RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SEL_TGT_CROP_BOUNDS,
+      V4L2_SUBDEV_FORMAT_ACTIVE);
+  v4l2_subdev_set_selection (rkcamsrc->isp_subdev, &rect,
+      RKISP1_ISP_PAD_SOURCE_PATH, V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE);
 }
 
 static gboolean
@@ -436,18 +433,19 @@ gst_rkcamsrc_set_format (GstRKCamSrc * rkcamsrc, GstCaps * caps)
   GstV4l2Error error = GST_V4L2_ERROR_INIT;
   GstRKV4l2Object *obj;
 
-  obj = rkcamsrc->v4l2object;
-
+  obj = rkcamsrc->capture_object;
   g_signal_emit (rkcamsrc, gst_v4l2_signals[SIGNAL_PRE_SET_FORMAT], 0,
-      rkcamsrc->v4l2object->video_fd, caps);
+      rkcamsrc->capture_object->video_fd, caps);
 
   if (!gst_v4l2_object_set_format (obj, caps, &error)) {
     gst_v4l2_error (rkcamsrc, &error);
     return FALSE;
   }
 
-  gst_rkcamsrc_set_pad_format (rkcamsrc);
-  gst_rkcamsrc_set_crop_window (rkcamsrc);
+  gst_rkcamsrc_set_capture_selection (rkcamsrc);
+  /* do auto-conf */
+  if (!rkcamsrc->capture_object->disable_autoconf)
+    gst_rkcamsrc_init_pad_format_and_selection (rkcamsrc);
 
   return TRUE;
 }
@@ -459,27 +457,16 @@ gst_rkcamsrc_set_caps (GstBaseSrc * src, GstCaps * caps)
   GstRKV4l2Object *obj;
 
   rkcamsrc = GST_RKCAMSRC (src);
-  obj = rkcamsrc->v4l2object;
+  obj = rkcamsrc->capture_object;
 
   /* make sure the caps changed before doing anything */
   if (gst_v4l2_object_caps_equal (obj, caps))
     return TRUE;
 
   if (GST_V4L2_IS_ACTIVE (obj)) {
-    GstV4l2Error error = GST_V4L2_ERROR_INIT;
-    /* Just check if the format is acceptable, once we know
-     * no buffers should be outstanding we try S_FMT.
-     *
-     * Basesrc will do an allocation query that
-     * should indirectly reclaim buffers, after that we can
-     * set the format and then configure our pool */
-    if (gst_v4l2_object_try_format (obj, caps, &error)) {
-      rkcamsrc->renegotiation_adjust = rkcamsrc->offset + 1;
-      rkcamsrc->pending_set_fmt = TRUE;
-    } else {
-      gst_v4l2_error (rkcamsrc, &error);
-      return FALSE;
-    }
+    GST_ERROR_OBJECT (rkcamsrc,
+        "It's not allowed to change format after star streaming");
+    return FALSE;
   } else {
     /* make sure we stop capturing and dealloc buffers */
     if (!gst_v4l2_object_stop (obj))
@@ -497,130 +484,31 @@ gst_rkcamsrc_decide_allocation (GstBaseSrc * bsrc, GstQuery * query)
   GstRKCamSrc *src = GST_RKCAMSRC (bsrc);
   gboolean ret = TRUE;
 
-  if (src->pending_set_fmt) {
-    GstCaps *caps = gst_pad_get_current_caps (GST_BASE_SRC_PAD (bsrc));
-
-    if (!gst_v4l2_object_stop (src->v4l2object))
-      return FALSE;
-    ret = gst_rkcamsrc_set_format (src, caps);
-    gst_caps_unref (caps);
-    src->pending_set_fmt = FALSE;
-  } else if (gst_buffer_pool_is_active (src->v4l2object->pool)) {
-    /* Trick basesrc into not deactivating the active pool. Renegotiating here
-     * would otherwise turn off and on the camera. */
-    GstAllocator *allocator;
-    GstAllocationParams params;
-    GstBufferPool *pool;
-
-    gst_base_src_get_allocator (bsrc, &allocator, &params);
-    pool = gst_base_src_get_buffer_pool (bsrc);
-
-    if (gst_query_get_n_allocation_params (query))
-      gst_query_set_nth_allocation_param (query, 0, allocator, &params);
-    else
-      gst_query_add_allocation_param (query, allocator, &params);
-
-    if (gst_query_get_n_allocation_pools (query))
-      gst_query_set_nth_allocation_pool (query, 0, pool,
-          src->v4l2object->info.size, 1, 0);
-    else
-      gst_query_add_allocation_pool (query, pool, src->v4l2object->info.size, 1,
-          0);
-
-    if (pool)
-      gst_object_unref (pool);
-    if (allocator)
-      gst_object_unref (allocator);
-
-    return GST_BASE_SRC_CLASS (parent_class)->decide_allocation (bsrc, query);
+  if (gst_buffer_pool_is_active (src->capture_object->pool)) {
+    GST_ERROR_OBJECT (src,
+        "It's not allowed to change format after star streaming");
+    goto activate_failed;
   }
 
   if (ret) {
-    ret = gst_v4l2_object_decide_allocation (src->v4l2object, query);
+    ret = gst_v4l2_object_decide_allocation (src->capture_object, query);
     if (ret)
       ret = GST_BASE_SRC_CLASS (parent_class)->decide_allocation (bsrc, query);
   }
 
   if (ret) {
-    if (!gst_buffer_pool_set_active (src->v4l2object->pool, TRUE))
+    if (!gst_buffer_pool_set_active (src->capture_object->pool, TRUE))
       goto activate_failed;
   }
 
   return ret;
 
-activate_failed:
-  {
+activate_failed:{
     GST_ELEMENT_ERROR (src, RESOURCE, SETTINGS,
         (_("Failed to allocate required memory.")),
         ("Buffer pool activation failed"));
     return FALSE;
   }
-}
-
-static gboolean
-gst_rkcamsrc_query (GstBaseSrc * bsrc, GstQuery * query)
-{
-  GstRKCamSrc *src;
-  GstRKV4l2Object *obj;
-  gboolean res = FALSE;
-
-  src = GST_RKCAMSRC (bsrc);
-  obj = src->v4l2object;
-
-  switch (GST_QUERY_TYPE (query)) {
-    case GST_QUERY_LATENCY:{
-      GstClockTime min_latency, max_latency;
-      guint32 fps_n, fps_d;
-      guint num_buffers = 0;
-
-      /* device must be open */
-      if (!GST_V4L2_IS_OPEN (obj)) {
-        GST_WARNING_OBJECT (src,
-            "Can't give latency since device isn't open !");
-        goto done;
-      }
-
-      fps_n = GST_V4L2_FPS_N (obj);
-      fps_d = GST_V4L2_FPS_D (obj);
-
-      /* we must have a framerate */
-      if (fps_n <= 0 || fps_d <= 0) {
-        GST_WARNING_OBJECT (src,
-            "Can't give latency since framerate isn't fixated !");
-        goto done;
-      }
-
-      /* min latency is the time to capture one frame */
-      min_latency = gst_util_uint64_scale_int (GST_SECOND, fps_d, fps_n);
-
-      /* max latency is total duration of the frame buffer */
-      if (obj->pool != NULL)
-        num_buffers = GST_V4L2_BUFFER_POOL_CAST (obj->pool)->max_latency;
-
-      if (num_buffers == 0)
-        max_latency = -1;
-      else
-        max_latency = num_buffers * min_latency;
-
-      GST_DEBUG_OBJECT (bsrc,
-          "report latency min %" GST_TIME_FORMAT " max %" GST_TIME_FORMAT,
-          GST_TIME_ARGS (min_latency), GST_TIME_ARGS (max_latency));
-
-      /* we are always live, the min latency is 1 frame and the max latency is
-       * the complete buffer of frames. */
-      gst_query_set_latency (query, TRUE, min_latency, max_latency);
-
-      res = TRUE;
-      break;
-    }
-    default:
-      res = GST_BASE_SRC_CLASS (parent_class)->query (bsrc, query);
-      break;
-  }
-
-done:
-
-  return res;
 }
 
 /* start and stop are not symmetric -- start will open the device, but not start
@@ -631,10 +519,8 @@ static gboolean
 gst_rkcamsrc_start (GstBaseSrc * src)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
-  char vdev[32];
 
   rkcamsrc->offset = 0;
-  rkcamsrc->renegotiation_adjust = 0;
 
   /* activate settings for first frame */
   rkcamsrc->ctrl_time = 0;
@@ -643,34 +529,44 @@ gst_rkcamsrc_start (GstBaseSrc * src)
   rkcamsrc->has_bad_timestamp = FALSE;
   rkcamsrc->last_timestamp = 0;
 
-  rk_common_v4l2device_find_by_name ("rkisp1_mainpath", vdev);
-  if (strcmp (rkcamsrc->v4l2object->videodev, vdev)) {
-    printf ("rkcamsrc: Using ISP self path......\n");
-  } else {
-    printf ("rkcamsrc: Using ISP main path......\n");
-  }
+  rkcamsrc->controller =
+      gst_media_controller_new_by_vnode (rkcamsrc->capture_object->videodev);
+  if (!rkcamsrc->controller)
+    GST_ERROR_OBJECT (rkcamsrc,
+        "Can't find controller, you might give a wrong video node");
 
-  rkcamsrc->media_index =
-      rk_common_media_find_by_vnode (rkcamsrc->v4l2object->videodev);
-  if (rkcamsrc->media_index == -1)
-    return FALSE;
-
+  rkcamsrc->main_path =
+      gst_media_find_entity_by_name (rkcamsrc->controller, "rkisp1_mainpath");
+  rkcamsrc->self_path =
+      gst_media_find_entity_by_name (rkcamsrc->controller, "rkisp1_selfpath");
   rkcamsrc->isp_subdev =
-      rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
-      "rkisp1-isp-subdev");
-  rkcamsrc->isp_params_subdev =
-      rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
+      gst_media_find_entity_by_name (rkcamsrc->controller, "rkisp1-isp-subdev");
+  rkcamsrc->isp_params_dev =
+      gst_media_find_entity_by_name (rkcamsrc->controller,
       "rkisp1-input-params");
-  rkcamsrc->isp_stats_subdev =
-      rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
-      "rkisp1-statistics");
+  rkcamsrc->isp_stats_dev =
+      gst_media_find_entity_by_name (rkcamsrc->controller, "rkisp1-statistics");
   rkcamsrc->phy_subdev =
-      rk_common_media_find_subdev_by_name (rkcamsrc->media_index,
+      gst_media_find_entity_by_name (rkcamsrc->controller,
       "rockchip-sy-mipi-dphy");
 
-  /* assume the last enity is sensor */
-  rkcamsrc->sensor_subdev =
-      rk_common_media_get_last_enity (rkcamsrc->media_index);
+  /* assume the last enity is sensor_subdev */
+  rkcamsrc->sensor_subdev = gst_media_get_last_entity (rkcamsrc->controller);
+
+  if (strcmp (rkcamsrc->capture_object->videodev,
+          media_entity_get_devname (rkcamsrc->main_path)))
+    GST_DEBUG_OBJECT (rkcamsrc, "Using ISP self path");
+  else
+    GST_DEBUG_OBJECT (rkcamsrc, "Using ISP main path");
+
+  v4l2_subdev_close (rkcamsrc->sensor_subdev);
+  rkcamsrc->thread_3a =
+      RKISP1_3A_THREAD_CREATE (media_entity_get_devname
+      (rkcamsrc->isp_params_dev),
+      media_entity_get_devname (rkcamsrc->isp_stats_dev),
+      media_entity_get_devname (rkcamsrc->sensor_subdev),
+      rkcamsrc->capture_object->xml_path, rkcamsrc->capture_object->isp_mode);
+  RKISP1_3A_THREAD_START (rkcamsrc->thread_3a);
 
   return TRUE;
 }
@@ -679,7 +575,10 @@ static gboolean
 gst_rkcamsrc_unlock (GstBaseSrc * src)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
-  return gst_v4l2_object_unlock (rkcamsrc->v4l2object);
+
+  gst_v4l2_object_unlock (rkcamsrc->capture_object);
+
+  return TRUE;
 }
 
 static gboolean
@@ -689,21 +588,25 @@ gst_rkcamsrc_unlock_stop (GstBaseSrc * src)
 
   rkcamsrc->last_timestamp = 0;
 
-  return gst_v4l2_object_unlock_stop (rkcamsrc->v4l2object);
+  gst_v4l2_object_unlock_stop (rkcamsrc->capture_object);
+
+  return TRUE;
 }
 
 static gboolean
 gst_rkcamsrc_stop (GstBaseSrc * src)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
-  GstRKV4l2Object *obj = rkcamsrc->v4l2object;
 
-  if (GST_V4L2_IS_ACTIVE (obj)) {
-    if (!gst_v4l2_object_stop (obj))
+  if (GST_V4L2_IS_ACTIVE (rkcamsrc->capture_object)) {
+    if (!gst_v4l2_object_stop (rkcamsrc->capture_object))
       return FALSE;
   }
 
-  rkcamsrc->pending_set_fmt = FALSE;
+  RKISP1_3A_THREAD_STOP (rkcamsrc->thread_3a);
+  RKISP1_3A_THREAD_EXIT (rkcamsrc->thread_3a);
+
+  gst_media_controller_delete (rkcamsrc->controller);
 
   return TRUE;
 }
@@ -713,12 +616,11 @@ gst_rkcamsrc_change_state (GstElement * element, GstStateChange transition)
 {
   GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (element);
-  GstRKV4l2Object *obj = rkcamsrc->v4l2object;
 
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
       /* open the device */
-      if (!gst_v4l2_object_open (obj))
+      if (!gst_v4l2_object_open (rkcamsrc->capture_object))
         return GST_STATE_CHANGE_FAILURE;
       break;
     default:
@@ -730,9 +632,8 @@ gst_rkcamsrc_change_state (GstElement * element, GstStateChange transition)
   switch (transition) {
     case GST_STATE_CHANGE_READY_TO_NULL:
       /* close the device */
-      if (!gst_v4l2_object_close (obj))
+      if (!gst_v4l2_object_close (rkcamsrc->capture_object))
         return GST_STATE_CHANGE_FAILURE;
-
       break;
     default:
       break;
@@ -745,7 +646,7 @@ static GstFlowReturn
 gst_rkcamsrc_create (GstPushSrc * src, GstBuffer ** buf)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
-  GstRKV4l2Object *obj = rkcamsrc->v4l2object;
+  GstRKV4l2Object *obj = rkcamsrc->capture_object;
   GstRKV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL_CAST (obj->pool);
   GstFlowReturn ret;
   GstClock *clock;
@@ -754,7 +655,8 @@ gst_rkcamsrc_create (GstPushSrc * src, GstBuffer ** buf)
   GstMessage *qos_msg;
 
   do {
-    ret = GST_BASE_SRC_CLASS (parent_class)->alloc (GST_BASE_SRC (src), 0,
+    ret =
+        GST_BASE_SRC_CLASS (parent_class)->alloc (GST_BASE_SRC (src), 0,
         obj->info.size, buf);
 
     if (G_UNLIKELY (ret != GST_FLOW_OK))
@@ -843,9 +745,10 @@ retry:
     /* Save last timestamp for sanity checks */
     rkcamsrc->last_timestamp = timestamp;
 
-    GST_DEBUG_OBJECT (rkcamsrc, "ts: %" GST_TIME_FORMAT " now %" GST_TIME_FORMAT
-        " delay %" GST_TIME_FORMAT, GST_TIME_ARGS (timestamp),
-        GST_TIME_ARGS (gstnow), GST_TIME_ARGS (delay));
+    GST_DEBUG_OBJECT (rkcamsrc,
+        "ts: %" GST_TIME_FORMAT " now %" GST_TIME_FORMAT " delay %"
+        GST_TIME_FORMAT, GST_TIME_ARGS (timestamp), GST_TIME_ARGS (gstnow),
+        GST_TIME_ARGS (delay));
   } else {
     /* we assume 1 frame latency otherwise */
     if (GST_CLOCK_TIME_IS_VALID (duration))
@@ -890,10 +793,6 @@ retry:
     GST_BUFFER_OFFSET (*buf) = rkcamsrc->offset++;
     GST_BUFFER_OFFSET_END (*buf) = rkcamsrc->offset;
   } else {
-    /* adjust raw v4l2 device sequence, will restart at null in case of renegotiation
-     * (streamoff/streamon) */
-    GST_BUFFER_OFFSET (*buf) += rkcamsrc->renegotiation_adjust;
-    GST_BUFFER_OFFSET_END (*buf) += rkcamsrc->renegotiation_adjust;
     /* check for frame loss with given (from v4l2 device) buffer offset */
     if ((rkcamsrc->offset != 0)
         && (GST_BUFFER_OFFSET (*buf) != (rkcamsrc->offset + 1))) {
@@ -908,7 +807,6 @@ retry:
           GST_CLOCK_TIME_IS_VALID (duration) ? lost_frame_count *
           duration : GST_CLOCK_TIME_NONE);
       gst_element_post_message (GST_ELEMENT_CAST (rkcamsrc), qos_msg);
-
     }
     rkcamsrc->offset = GST_BUFFER_OFFSET (*buf);
   }
@@ -919,15 +817,13 @@ retry:
   return ret;
 
   /* ERROR */
-alloc_failed:
-  {
+alloc_failed:{
     if (ret != GST_FLOW_FLUSHING)
       GST_ELEMENT_ERROR (src, RESOURCE, NO_SPACE_LEFT,
           ("Failed to allocate a buffer"), (NULL));
     return ret;
   }
-error:
-  {
+error:{
     gst_buffer_replace (buf, NULL);
     if (ret == GST_V4L2_FLOW_LAST_BUFFER) {
       GST_ELEMENT_ERROR (src, RESOURCE, FAILED,
@@ -940,58 +836,4 @@ error:
     }
     return ret;
   }
-}
-
-
-/* GstURIHandler interface */
-static GstURIType
-gst_rkcamsrc_uri_get_type (GType type)
-{
-  return GST_URI_SRC;
-}
-
-static const gchar *const *
-gst_rkcamsrc_uri_get_protocols (GType type)
-{
-  static const gchar *protocols[] = { "v4l2", NULL };
-
-  return protocols;
-}
-
-static gchar *
-gst_rkcamsrc_uri_get_uri (GstURIHandler * handler)
-{
-  GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (handler);
-
-  if (rkcamsrc->v4l2object->videodev != NULL) {
-    return g_strdup_printf ("v4l2://%s", rkcamsrc->v4l2object->videodev);
-  }
-
-  return g_strdup ("v4l2://");
-}
-
-static gboolean
-gst_rkcamsrc_uri_set_uri (GstURIHandler * handler, const gchar * uri,
-    GError ** error)
-{
-  GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (handler);
-  const gchar *device = DEFAULT_PROP_DEVICE;
-
-  if (strcmp (uri, "v4l2://") != 0) {
-    device = uri + 7;
-  }
-  g_object_set (rkcamsrc, "device", device, NULL);
-
-  return TRUE;
-}
-
-static void
-gst_rkcamsrc_uri_handler_init (gpointer g_iface, gpointer iface_data)
-{
-  GstURIHandlerInterface *iface = (GstURIHandlerInterface *) g_iface;
-
-  iface->get_type = gst_rkcamsrc_uri_get_type;
-  iface->get_protocols = gst_rkcamsrc_uri_get_protocols;
-  iface->get_uri = gst_rkcamsrc_uri_get_uri;
-  iface->set_uri = gst_rkcamsrc_uri_set_uri;
 }

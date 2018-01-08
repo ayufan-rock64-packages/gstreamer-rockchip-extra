@@ -1,3 +1,23 @@
+/*
+ * Copyright 2017 Rockchip Electronics Co., Ltd
+ *     Author: Jacob Chen <jacob2.chen@rock-chips.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
+ *
+ */
 #ifndef __RK_COMMON_H__
 #define __RK_COMMON_H__
 
@@ -17,8 +37,6 @@
 #include <time.h>
 
 #include "ext/videodev2.h"
-#include "ext/mediactl.h"
-#include "ext/v4l2subdev.h"
 
 #include <gst/gst.h>
 #include <gst/gstatomicqueue.h>
@@ -26,22 +44,17 @@
 #include <gst/video/video.h>
 
 // values
-enum rkisp1_isp_pad
-{
-  RKISP1_ISP_PAD_SINK,
-  RKISP1_ISP_PAD_SINK_PARAMS,
-  RKISP1_ISP_PAD_SOURCE_PATH,
-  RKISP1_ISP_PAD_SOURCE_STATS,
-  /* TODO: meta data pad ? */
-  RKISP1_ISP_PAD_MAX
-};
+G_BEGIN_DECLS
+#define GST_TYPE_RK_3A_MODE (gst_rk_3a_mode_get_type ())
+    GType gst_rk_3a_mode_get_type (void);
 
-enum mipi_dphy_sy_pads
+typedef enum
 {
-  MIPI_DPHY_SY_PAD_SINK = 0,
-  MIPI_DPHY_SY_PAD_SOURCE,
-  MIPI_DPHY_SY_PADS_NUM,
-};
+  RK_3A_DISABLE = 0,
+  RK_3A_AEAWB = 1,
+  RK_3A_AEAWBAF = 2,
+} GstRk3AMode;
+G_END_DECLS
 
 #define RK_V4L2_OBJECT_PROPS \
     PROP_VPU_STRIDE, \
@@ -51,7 +64,8 @@ enum mipi_dphy_sy_pads
     PROP_OUTPUT_CROP, \
     PROP_INPUT_CROP, \
     PROP_DISABLE_AUTOCONF, \
-    PROP_DISABLE_3A
+    PROP_3A_MODE, \
+    PROP_XML_FILE
 
 #define RK_V4L2_OBJECT \
   /* Rockchip Common */ \
@@ -64,7 +78,8 @@ enum mipi_dphy_sy_pads
   gboolean vpu_stride; \
   /* Rockchip ISP */ \
   gboolean disable_autoconf; \
-  gboolean disable_3A; 
+  GstRk3AMode isp_mode;  \
+  const gchar *xml_path;
 
 struct _GstV4l2Object;
 
@@ -107,12 +122,5 @@ gboolean rk_common_set_property_helper (struct _GstV4l2Object *v4l2object,
 gboolean rk_common_get_property_helper (struct _GstV4l2Object *v4l2object,
     guint prop_id, GValue * value, GParamSpec * pspec);
 void rk_common_new (struct _GstV4l2Object *v4l2object);
-
-// media
-void rk_common_media_init_global_data (void);
-guint rk_common_media_find_by_vnode (const char *vnode);
-struct media_entity *rk_common_media_find_subdev_by_name (guint index,
-    const char *subdev_name);
-struct media_entity *rk_common_media_get_last_enity (guint index);
 
 #endif

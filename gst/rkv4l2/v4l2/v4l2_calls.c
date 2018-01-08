@@ -35,8 +35,6 @@
 #include <unistd.h>
 #include "v4l2_calls.h"
 
-#include "rkcamsrc.h"
-
 #include "gst/gst-i18n-plugin.h"
 
 GST_DEBUG_CATEGORY_EXTERN (v4l2_debug);
@@ -283,12 +281,6 @@ gst_v4l2_open (GstRKV4l2Object * v4l2object)
   if (!gst_v4l2_get_capabilities (v4l2object))
     goto error;
 
-  /* do we need to be a capture device? */
-  if (GST_IS_RKCAMSRC (v4l2object->element) &&
-      !(v4l2object->device_caps & (V4L2_CAP_VIDEO_CAPTURE |
-              V4L2_CAP_VIDEO_CAPTURE_MPLANE)))
-    goto not_capture;
-
   gst_v4l2_adjust_buf_type (v4l2object);
 
   /* create enumerations, posts errors. */
@@ -331,14 +323,6 @@ not_open:
     GST_ELEMENT_ERROR (v4l2object->element, RESOURCE, OPEN_READ_WRITE,
         (_("Could not open device '%s' for reading and writing."),
             v4l2object->videodev), GST_ERROR_SYSTEM);
-    goto error;
-  }
-not_capture:
-  {
-    GST_ELEMENT_ERROR (v4l2object->element, RESOURCE, NOT_FOUND,
-        (_("Device '%s' is not a capture device."),
-            v4l2object->videodev),
-        ("Capabilities: 0x%x", v4l2object->device_caps));
     goto error;
   }
 error:
