@@ -393,7 +393,6 @@ void rkisp1_3a_core_run_ae(struct RKISP1Core* rkisp1_core)
     rk_aiq_ae_input_params aeInputParams;
     rk_aiq_ae_results results;
     rk_aiq_ae_manual_limits manual_limits;
-    rk_aiq_window window;
     int status = 0;
 
     memset(&aeInputParams, 0, sizeof(aeInputParams));
@@ -422,11 +421,7 @@ void rkisp1_3a_core_run_ae(struct RKISP1Core* rkisp1_core)
     aeInputParams.priority_mode = rk_aiq_ae_priority_mode_normal;
     aeInputParams.flicker_reduction_mode = rk_aiq_ae_flicker_reduction_off;
 
-    aeInputParams.window = &window;
-    aeInputParams.window->h_offset = 0;
-    aeInputParams.window->v_offset = 0;
-    aeInputParams.window->width = rkisp1_core->sensor_desc.sensor_output_width;
-    aeInputParams.window->height = rkisp1_core->sensor_desc.sensor_output_height;
+    aeInputParams.window = NULL;
 
     aeInputParams.sensor_descriptor = &rkisp1_core->sensor_desc;
 
@@ -447,7 +442,9 @@ void rkisp1_3a_core_run_awb(struct RKISP1Core* rkisp1_core)
     memset(&results, 0, sizeof(results));
 
     /* TODO: add interface to change it */
-    aeInputParams.num_exposures = 1;
+    awbInputParams.frame_use = rk_aiq_frame_use_preview;
+    awbInputParams.manual_cct_range = NULL;
+    awbInputParams.window = NULL;
 
     status = rk_aiq_awb_run(rkisp1_core->mAiq, &awbInputParams, &results);
     if (status)
