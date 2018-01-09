@@ -442,10 +442,10 @@ gst_rkcamsrc_set_format (GstRKCamSrc * rkcamsrc, GstCaps * caps)
     return FALSE;
   }
 
-  gst_rkcamsrc_set_capture_selection (rkcamsrc);
   /* do auto-conf */
   if (!rkcamsrc->capture_object->disable_autoconf)
     gst_rkcamsrc_init_pad_format_and_selection (rkcamsrc);
+  gst_rkcamsrc_set_capture_selection (rkcamsrc);
 
   return TRUE;
 }
