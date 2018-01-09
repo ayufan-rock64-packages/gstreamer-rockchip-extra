@@ -19,6 +19,7 @@
  *
  */
 #include "params.h"
+#include "config.h"
 #include "v4l2.h"
 
 #include <assert.h>
@@ -914,6 +915,7 @@ int rkisp1_convert_params(struct rkisp1_isp_params_cfg* isp_cfg, struct AiqResul
         rkisp1_params_convertAEC(isp_cfg, &isp_cfg->meas.aec_config, &aiqResults->aeResults.aec_config_result);
     if (memcmp(&aiqResults->aeResults.hist_config_result, &mLastAiqResults.aeResults.hist_config_result, sizeof(rk_aiq_hist_config)) != 0)
         rkisp1_params_convertHST(isp_cfg, &isp_cfg->meas.hst_config, &aiqResults->aeResults.hist_config_result);
+
     if (memcmp(&aiqResults->miscIspResults.bls_config, &mLastAiqResults.miscIspResults.bls_config, sizeof(rk_aiq_bls_config)) != 0)
         rkisp1_params_convertBLS(isp_cfg, &isp_cfg->others.bls_config, &aiqResults->miscIspResults.bls_config);
     if (memcmp(&aiqResults->miscIspResults.dpcc_config, &mLastAiqResults.miscIspResults.dpcc_config, sizeof(rk_aiq_dpcc_config)) != 0)
@@ -924,15 +926,14 @@ int rkisp1_convert_params(struct rkisp1_isp_params_cfg* isp_cfg, struct AiqResul
         rkisp1_params_convertDPF(isp_cfg, &isp_cfg->others.dpf_config, &aiqResults->miscIspResults.dpf_config);
     if (memcmp(&aiqResults->miscIspResults.strength_config, &mLastAiqResults.miscIspResults.strength_config, sizeof(rk_aiq_dpf_strength_config)) != 0)
         rkisp1_params_convertDPFStrength(isp_cfg, &isp_cfg->others.dpf_strength_config, &aiqResults->miscIspResults.strength_config);
-
-    if (memcmp(&aiqResults->miscIspResults.gbce_config.cproc_config, &mLastAiqResults.miscIspResults.gbce_config.cproc_config, sizeof(rk_aiq_cproc_config)) != 0)
-        rkisp1_params_convertCPROC(isp_cfg, &isp_cfg->others.cproc_config, &aiqResults->miscIspResults.gbce_config.cproc_config);
-    if (memcmp(&aiqResults->miscIspResults.gbce_config.goc_config, &mLastAiqResults.miscIspResults.gbce_config.goc_config, sizeof(rk_aiq_goc_config)) != 0)
-        rkisp1_params_convertGOC(isp_cfg, &isp_cfg->others.goc_config, &aiqResults->miscIspResults.gbce_config.goc_config);
     if (memcmp(&aiqResults->miscIspResults.gbce_config.ie_config, &mLastAiqResults.miscIspResults.gbce_config.ie_config, sizeof(rk_aiq_ie_config)) != 0)
         rkisp1_params_convertIE(isp_cfg, &isp_cfg->others.ie_config, &aiqResults->miscIspResults.gbce_config.ie_config);
     if (memcmp(&aiqResults->miscIspResults.bdm_config, &mLastAiqResults.miscIspResults.bdm_config, sizeof(rk_aiq_bdm_config)) != 0)
         rkisp1_params_convertBDM(isp_cfg, &isp_cfg->others.bdm_config, &aiqResults->miscIspResults.bdm_config);
+    if (memcmp(&aiqResults->miscIspResults.gbce_config.goc_config, &mLastAiqResults.miscIspResults.gbce_config.goc_config, sizeof(rk_aiq_goc_config)) != 0)
+        rkisp1_params_convertGOC(isp_cfg, &isp_cfg->others.goc_config, &aiqResults->miscIspResults.gbce_config.goc_config);
+    if (memcmp(&aiqResults->miscIspResults.gbce_config.cproc_config, &mLastAiqResults.miscIspResults.gbce_config.cproc_config, sizeof(rk_aiq_cproc_config)) != 0)
+        rkisp1_params_convertCPROC(isp_cfg, &isp_cfg->others.cproc_config, &aiqResults->miscIspResults.gbce_config.cproc_config);
 
     mLastAiqResults = *aiqResults;
 

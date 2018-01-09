@@ -19,6 +19,7 @@
  *
  */
 #include "sensor.h"
+#include "common.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -146,24 +147,35 @@ int rkisp1_get_sensor_desc(int fd, rk_aiq_exposure_sensor_descriptor* sensor_des
 
 int rkisp1_apply_sensor_params(int fd, rk_aiq_exposure_sensor_parameters* expParams)
 {
+    static int aGain[EXPOSURE_GAIN_DELAY], dGain[EXPOSURE_GAIN_DELAY];
     struct v4l2_control ctrl;
-    int ret;
+    int ret, i;
 
     memset(&ctrl, 0, sizeof(ctrl));
     ctrl.id = V4L2_CID_ANALOGUE_GAIN;
-    ctrl.value = expParams->analog_gain_code_global;
+    ctrl.value = aGain[0];
     ret = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
     if (ret < 0)
         return -errno;
 
-    if (expParams->digital_gain_global != 0) {
+    for (i = 0; i + 1 < EXPOSURE_GAIN_DELAY; ++i) {
+        aGain[i] = aGain[i + 1];
+    }
+    aGain[EXPOSURE_GAIN_DELAY - 1] = expParams->analog_gain_code_global;
+
+    if (dGain[0] != 0) {
         memset(&ctrl, 0, sizeof(ctrl));
         ctrl.id = V4L2_CID_GAIN;
-        ctrl.value = expParams->digital_gain_global;
+        ctrl.value = dGain[0];
         ret = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
         if (ret < 0)
             return -errno;
     }
+
+    for (i = 0; i + 1 < EXPOSURE_GAIN_DELAY; ++i) {
+        dGain[i] = dGain[i + 1];
+    }
+    dGain[EXPOSURE_GAIN_DELAY - 1] = expParams->digital_gain_global;
 
     memset(&ctrl, 0, sizeof(ctrl));
     ctrl.id = V4L2_CID_EXPOSURE;
@@ -172,5 +184,5 @@ int rkisp1_apply_sensor_params(int fd, rk_aiq_exposure_sensor_parameters* expPar
     if (ret < 0)
         return -errno;
 
-    return ret;
+    return 0;
 }

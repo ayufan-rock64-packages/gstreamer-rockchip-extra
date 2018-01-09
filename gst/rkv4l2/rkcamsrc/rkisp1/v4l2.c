@@ -19,6 +19,7 @@
  *
  */
 #include "v4l2.h"
+#include "common.h"
 #include "params.h"
 #include "sensor.h"
 #include "stats.h"
@@ -38,8 +39,6 @@
 #include <unistd.h>
 
 #include "ext/videodev2.h"
-
-#define DEBUG 0
 
 static int __check_cap(int params_fd, int stats_fd)
 {
@@ -392,25 +391,16 @@ void rkisp1_3a_core_run_ae(struct RKISP1Core* rkisp1_core)
 {
     rk_aiq_ae_input_params aeInputParams;
     rk_aiq_ae_results results;
-    rk_aiq_ae_manual_limits manual_limits;
     int status = 0;
 
     memset(&aeInputParams, 0, sizeof(aeInputParams));
     memset(&results, 0, sizeof(results));
 
-    /* TODO: add interface to change it */
     aeInputParams.num_exposures = 1;
     aeInputParams.frame_use = rk_aiq_frame_use_preview;
     aeInputParams.flash_mode = rk_aiq_flash_mode_off;
 
-    aeInputParams.manual_limits = &manual_limits;
-    aeInputParams.manual_limits->manual_exposure_time_min = -1;
-    aeInputParams.manual_limits->manual_exposure_time_max = -1;
-    aeInputParams.manual_limits->manual_frame_time_us_min = -1;
-    aeInputParams.manual_limits->manual_frame_time_us_max = -1;
-    aeInputParams.manual_limits->manual_iso_min = -1;
-    aeInputParams.manual_limits->manual_iso_max = -1;
-
+    aeInputParams.manual_limits = NULL;
     aeInputParams.manual_exposure_time_us = NULL;
     aeInputParams.manual_analog_gain = NULL;
     aeInputParams.manual_iso = NULL;
@@ -441,7 +431,6 @@ void rkisp1_3a_core_run_awb(struct RKISP1Core* rkisp1_core)
     memset(&awbInputParams, 0, sizeof(awbInputParams));
     memset(&results, 0, sizeof(results));
 
-    /* TODO: add interface to change it */
     awbInputParams.frame_use = rk_aiq_frame_use_preview;
     awbInputParams.manual_cct_range = NULL;
     awbInputParams.window = NULL;

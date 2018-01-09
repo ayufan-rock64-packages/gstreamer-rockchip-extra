@@ -19,6 +19,7 @@
  *
  */
 #include "thread.h"
+#include "common.h"
 #include "v4l2.h"
 
 #include <stdio.h>

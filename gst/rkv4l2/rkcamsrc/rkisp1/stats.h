@@ -22,6 +22,7 @@
 #define __RKISP1_STATS_H__
 
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "rkisp1/rk_aiq.h"
 #include "rkisp1/rkisp1-config.h"
