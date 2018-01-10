@@ -6,5 +6,6 @@
 #define DEBUG 0
 
 #define EXPOSURE_GAIN_DELAY 2
+#define CIT_MAX_MARGIN 4
 
 #endif

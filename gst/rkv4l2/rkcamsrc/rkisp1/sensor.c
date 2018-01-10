@@ -70,7 +70,7 @@ static int __get_exposure_range(int fd, rk_aiq_exposure_sensor_descriptor* senso
         return -errno;
 
     sensor_desc->coarse_integration_time_min = ctrl.minimum;
-    sensor_desc->coarse_integration_time_max_margin = ctrl.maximum;
+    sensor_desc->coarse_integration_time_max_margin = CIT_MAX_MARGIN;
 
     return ret;
 }
@@ -99,6 +99,7 @@ static int __get_blank(int fd, rk_aiq_exposure_sensor_descriptor* sensor_desc)
 
     sensor_desc->line_periods_vertical_blanking = vertBlank;
 
+    //INFO: fine integration is not supported by v4l2
     sensor_desc->fine_integration_time_min = 0;
     sensor_desc->fine_integration_time_max_margin = sensor_desc->pixel_periods_per_line;
 
@@ -158,7 +159,7 @@ int rkisp1_apply_sensor_params(int fd, rk_aiq_exposure_sensor_parameters* expPar
     if (ret < 0)
         return -errno;
 
-    for (i = 0; i + 1 < EXPOSURE_GAIN_DELAY; ++i) {
+    for (i = 0; i < EXPOSURE_GAIN_DELAY - 1; ++i) {
         aGain[i] = aGain[i + 1];
     }
     aGain[EXPOSURE_GAIN_DELAY - 1] = expParams->analog_gain_code_global;
@@ -183,6 +184,12 @@ int rkisp1_apply_sensor_params(int fd, rk_aiq_exposure_sensor_parameters* expPar
     ret = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
     if (ret < 0)
         return -errno;
+
+    if (DEBUG) {
+        printf("analog_gain_code_global: %d \n", expParams->analog_gain_code_global);
+        printf("digital_gain_global: %d \n", expParams->digital_gain_global);
+        printf("coarse_integration_time: %d \n", expParams->coarse_integration_time);
+    }
 
     return 0;
 }

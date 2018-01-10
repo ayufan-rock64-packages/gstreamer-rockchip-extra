@@ -236,7 +236,8 @@ int rkisp1_3a_core_streamon(struct RKISP1Core* rkisp1_core)
     enum v4l2_buf_type type;
     int i, ret = 0;
 
-    for (i = 0; i < RKISP1_MAX_BUF; ++i) {
+    /* params should just use one buffer */
+    for (i = 0; i < 1; ++i) {
         struct v4l2_buffer buf;
 
         memset(&buf, 0, sizeof(buf));
@@ -351,7 +352,14 @@ int rkisp1_3a_core_process_params(struct RKISP1Core* rkisp1_core)
     struct v4l2_buffer buf = { 0 };
     int ret = 0;
 
-    /* isp_params */
+    /* apply sensor */
+    if (rkisp1_apply_sensor_params(rkisp1_core->sensor_fd, &rkisp1_core->aiq_results.aeResults.sensor_exposure)) {
+        printf("RKISP1: failed to apply sensor params for %d %s.\n",
+            errno, strerror(errno));
+        return ret;
+    }
+
+    /* apply isp_params */
     memset(&buf, 0, sizeof(buf));
     buf.type = V4L2_BUF_TYPE_META_OUTPUT;
     buf.memory = V4L2_MEMORY_MMAP;
@@ -373,13 +381,6 @@ int rkisp1_3a_core_process_params(struct RKISP1Core* rkisp1_core)
     ret = ioctl(rkisp1_core->params_fd, VIDIOC_QBUF, &buf);
     if (ret != 0) {
         printf("RKISP1: failed to ioctl VIDIOC_QBUF for %d %s.\n",
-            errno, strerror(errno));
-        return ret;
-    }
-
-    /* sensor */
-    if (rkisp1_apply_sensor_params(rkisp1_core->sensor_fd, &rkisp1_core->aiq_results.aeResults.sensor_exposure)) {
-        printf("RKISP1: failed to apply sensor params for %d %s.\n",
             errno, strerror(errno));
         return ret;
     }

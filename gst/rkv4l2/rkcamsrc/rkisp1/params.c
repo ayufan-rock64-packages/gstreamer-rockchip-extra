@@ -19,7 +19,7 @@
  *
  */
 #include "params.h"
-#include "config.h"
+#include "common.h"
 #include "v4l2.h"
 
 #include <assert.h>
