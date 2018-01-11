@@ -1,9 +1,6 @@
 /*
- * Copyright (c) 2017, Fuzhou Rockchip Electronics Co., Ltd
- *
- * Based on Intel IPU3 HAL by Intel Corporation.
- *
  * Copyright (C) 2015 - 2017 Intel Corporation.
+ * Copyright (c) 2017, Fuzhou Rockchip Electronics Co., Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -295,6 +292,10 @@ typedef struct
     unsigned short coarse_integration_time_max_margin; /*!< coarse_integration_time_max = line_periods_per_field - coarse_integration_time_max_margin */
     unsigned short sensor_output_width;
     unsigned short sensor_output_height;
+    unsigned short isp_input_width;
+    unsigned short isp_input_height;
+    unsigned short isp_output_width;
+    unsigned short isp_output_height;
 } rk_aiq_exposure_sensor_descriptor;
 
 typedef enum
