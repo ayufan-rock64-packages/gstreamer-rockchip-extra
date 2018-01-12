@@ -603,7 +603,6 @@ gst_rkcamsrc_stop (GstBaseSrc * src)
       return FALSE;
   }
 
-  RKISP1_3A_THREAD_STOP (rkcamsrc->thread_3a);
   RKISP1_3A_THREAD_EXIT (rkcamsrc->thread_3a);
 
   gst_media_controller_delete (rkcamsrc->controller);
@@ -622,6 +621,14 @@ gst_rkcamsrc_change_state (GstElement * element, GstStateChange transition)
       /* open the device */
       if (!gst_v4l2_object_open (rkcamsrc->capture_object))
         return GST_STATE_CHANGE_FAILURE;
+      break;
+    case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
+      /* 3A should be stopped before stoping capture */
+      RKISP1_3A_THREAD_STOP (rkcamsrc->thread_3a);
+      break;
+    case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
+      /* 3A should be stopped before stoping capture */
+      RKISP1_3A_THREAD_START (rkcamsrc->thread_3a);
       break;
     default:
       break;
