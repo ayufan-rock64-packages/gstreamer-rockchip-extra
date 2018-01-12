@@ -533,7 +533,7 @@ gst_rkcamsrc_start (GstBaseSrc * src)
       gst_media_controller_new_by_vnode (rkcamsrc->capture_object->videodev);
   if (!rkcamsrc->controller)
     GST_ERROR_OBJECT (rkcamsrc,
-        "Can't find controller, you might give a wrong video node");
+        "Can't find controller, maybe use a wrong video-node or wrong permission to media node");
 
   rkcamsrc->main_path =
       gst_media_find_entity_by_name (rkcamsrc->controller, "rkisp1_mainpath");
