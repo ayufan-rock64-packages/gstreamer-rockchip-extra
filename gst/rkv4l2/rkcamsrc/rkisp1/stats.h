@@ -21,7 +21,7 @@
 #ifndef __RKISP1_STATS_H__
 #define __RKISP1_STATS_H__
 
-#include "common.h"
+#include "rkisp1-lib.h"
 
 static inline void rkisp1_stats_convertAWB(struct cifisp_awb_stat* awb_stats, rk_aiq_awb_measure_result* aiq_awb_stats)
 {

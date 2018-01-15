@@ -21,7 +21,7 @@
 #ifndef __RKISP1_PARAMS_H__
 #define __RKISP1_PARAMS_H__
 
-#include "common.h"
+#include "rkisp1-lib.h"
 
 struct AiqResults;
 

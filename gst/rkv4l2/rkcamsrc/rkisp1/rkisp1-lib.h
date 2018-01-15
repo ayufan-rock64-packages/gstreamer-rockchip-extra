@@ -1,5 +1,5 @@
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __RKISP1_LIB_H__
+#define __RKISP1_LIB_H__
 
 #include <stdbool.h>
 #include <stdio.h>

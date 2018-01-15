@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 
-#include "common.h"
+#include "rkisp1-lib.h"
 
 #define RKISP1_MAX_BUF 1
 
