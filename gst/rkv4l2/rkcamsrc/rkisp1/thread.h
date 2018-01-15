@@ -39,6 +39,7 @@
 #define EXITED_STATUS 5
 
 struct media_entity;
+struct AiqResults;
 struct RKISP1Core;
 
 struct rkisp1_params {
@@ -58,6 +59,7 @@ struct rkisp1_params {
 struct RKISP1Thread {
     pthread_t tid;
     pthread_mutex_t mutex;
+    pthread_mutex_t result_mutex;
 
     int mode;
     volatile int status;
@@ -70,5 +72,7 @@ void RKISP1_3A_THREAD_EXIT(struct RKISP1Thread* rkisp1_thread);
 
 void RKISP1_3A_THREAD_START(struct RKISP1Thread* rkisp1_thread);
 void RKISP1_3A_THREAD_STOP(struct RKISP1Thread* rkisp1_thread);
+
+void RKISP1_GET_3A_RESULT(struct RKISP1Thread* rkisp1_thread, struct AiqResults* ret_result);
 
 #endif

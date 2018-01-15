@@ -51,6 +51,7 @@ struct RKISP1Thread* RKISP1_3A_THREAD_CREATE(struct rkisp1_params* params)
     }
 
     pthread_mutex_init(&rkisp1_thread->mutex, NULL);
+    pthread_mutex_init(&rkisp1_thread->result_mutex, NULL);
     err = pthread_create(&rkisp1_thread->tid, NULL, rkisp1_thread_entry, rkisp1_thread);
     if (err) {
         printf("RKISP1: can't create thread: %s\n", strerror(err));
@@ -83,7 +84,7 @@ void RKISP1_3A_THREAD_EXIT(struct RKISP1Thread* rkisp1_thread)
     gettimeofday(&start, NULL);
     while (rkisp1_thread->status != EXITED_STATUS) {
         gettimeofday(&now, NULL);
-        if(now.tv_sec - start.tv_sec > 2) {
+        if (now.tv_sec - start.tv_sec > 2) {
             printf("RKISP1: Timed out waiting for thread to exit.\n");
             pthread_cancel(rkisp1_thread->tid);
             rkisp1_3a_core_deinit(rkisp1_thread->rkisp1_core);
@@ -137,7 +138,7 @@ void RKISP1_3A_THREAD_STOP(struct RKISP1Thread* rkisp1_thread)
     gettimeofday(&start, NULL);
     while (rkisp1_thread->status != READY_STATUS) {
         gettimeofday(&now, NULL);
-        if(now.tv_sec - start.tv_sec > 2) {
+        if (now.tv_sec - start.tv_sec > 2) {
             printf("RKISP1: Timed out waiting for thread to stop.\n");
             break;
         }
@@ -165,14 +166,17 @@ void* rkisp1_thread_entry(void* arg)
             pthread_mutex_unlock(&rkisp1_thread->mutex);
             break;
         case RUN_STATUS:
-            if(rkisp1_3a_core_process_stats(rkisp1_thread->rkisp1_core))
+            if (rkisp1_3a_core_process_stats(rkisp1_thread->rkisp1_core))
                 break;
 
+            pthread_mutex_lock(&rkisp1_thread->result_mutex);
             rkisp1_3a_core_run_ae(rkisp1_thread->rkisp1_core);
             rkisp1_3a_core_run_awb(rkisp1_thread->rkisp1_core);
             rkisp1_3a_core_run_misc(rkisp1_thread->rkisp1_core);
             if (rkisp1_thread->mode == AAA_ENABLE_MODE)
                 rkisp1_3a_core_run_af(rkisp1_thread->rkisp1_core);
+            pthread_mutex_unlock(&rkisp1_thread->result_mutex);
+
             rkisp1_3a_core_process_params(rkisp1_thread->rkisp1_core);
             break;
         default:
@@ -187,4 +191,14 @@ void* rkisp1_thread_entry(void* arg)
     rkisp1_3a_core_deinit(rkisp1_thread->rkisp1_core);
 
     return NULL;
+}
+
+void RKISP1_GET_3A_RESULT(struct RKISP1Thread* rkisp1_thread, struct AiqResults* ret_result)
+{
+    if (ret_result == NULL)
+        return;
+
+    pthread_mutex_lock(&rkisp1_thread->result_mutex);
+    *ret_result = rkisp1_thread->rkisp1_core->aiq_results;
+    pthread_mutex_unlock(&rkisp1_thread->result_mutex);
 }
