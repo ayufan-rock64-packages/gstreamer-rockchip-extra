@@ -30,23 +30,21 @@
 
 void* rkisp1_thread_entry(void* arg);
 
-struct RKISP1Thread* RKISP1_3A_THREAD_CREATE(const char* params_node, const char* stats_node,
-    const char* sensor_node, const char* xml_path, int mode)
+struct RKISP1Thread* RKISP1_3A_THREAD_CREATE(struct rkisp1_params* params)
 {
     struct RKISP1Thread* rkisp1_thread;
     int err;
 
-    if (mode == AAA_DISABLE_MODE)
+    if (params->mode == AAA_DISABLE_MODE)
         return NULL;
 
     rkisp1_thread = malloc(sizeof(struct RKISP1Thread));
     rkisp1_thread->rkisp1_core = malloc(sizeof(struct RKISP1Core));
 
-    rkisp1_thread->mode = mode;
+    rkisp1_thread->mode = params->mode;
     rkisp1_thread->status = READY_STATUS;
 
-    err = rkisp1_3a_core_init(rkisp1_thread->rkisp1_core, params_node,
-        stats_node, sensor_node, xml_path);
+    err = rkisp1_3a_core_init(rkisp1_thread->rkisp1_core, params);
     if (err) {
         printf("RKISP1: can't init rk-3a-core: %s\n", strerror(err));
         goto out;
@@ -70,22 +68,36 @@ out:
 
 void RKISP1_3A_THREAD_EXIT(struct RKISP1Thread* rkisp1_thread)
 {
+    struct timeval start, now;
+
     if (!rkisp1_thread)
         return;
 
     RKISP1_3A_THREAD_STOP(rkisp1_thread);
 
     pthread_mutex_lock(&rkisp1_thread->mutex);
-    rkisp1_thread->status = EXIT_STATUS;
+    rkisp1_thread->status = EXITING_STATUS;
     pthread_mutex_unlock(&rkisp1_thread->mutex);
 
-    pthread_join(rkisp1_thread->tid, NULL);
+    /* wait for exit */
+    gettimeofday(&start, NULL);
+    while (rkisp1_thread->status != EXITED_STATUS) {
+        gettimeofday(&now, NULL);
+        if(now.tv_sec - start.tv_sec > 2) {
+            printf("RKISP1: Timed out waiting for thread to exit.\n");
+            pthread_cancel(rkisp1_thread->tid);
+            rkisp1_3a_core_deinit(rkisp1_thread->rkisp1_core);
+            break;
+        }
+    }
+    if (rkisp1_thread->status == EXITED_STATUS)
+        pthread_join(rkisp1_thread->tid, NULL);
 
     free(rkisp1_thread->rkisp1_core);
     free(rkisp1_thread);
 }
 
-/* This function should be called after starting capture
+/* This function should be called before starting capture,
  * block until 3a core stream on.
  */
 void RKISP1_3A_THREAD_START(struct RKISP1Thread* rkisp1_thread)
@@ -109,6 +121,8 @@ void RKISP1_3A_THREAD_START(struct RKISP1Thread* rkisp1_thread)
  */
 void RKISP1_3A_THREAD_STOP(struct RKISP1Thread* rkisp1_thread)
 {
+    struct timeval start, now;
+
     if (!rkisp1_thread)
         return;
 
@@ -119,15 +133,22 @@ void RKISP1_3A_THREAD_STOP(struct RKISP1Thread* rkisp1_thread)
     rkisp1_thread->status = STOPING_STATUS;
     pthread_mutex_unlock(&rkisp1_thread->mutex);
 
-    while (rkisp1_thread->status != READY_STATUS)
-        ;
+    /* wait for stop */
+    gettimeofday(&start, NULL);
+    while (rkisp1_thread->status != READY_STATUS) {
+        gettimeofday(&now, NULL);
+        if(now.tv_sec - start.tv_sec > 2) {
+            printf("RKISP1: Timed out waiting for thread to stop.\n");
+            break;
+        }
+    }
 }
 
 void* rkisp1_thread_entry(void* arg)
 {
     struct RKISP1Thread* rkisp1_thread = (struct RKISP1Thread*)arg;
 
-    while (rkisp1_thread->status != EXIT_STATUS) {
+    while (rkisp1_thread->status != EXITING_STATUS) {
         switch (rkisp1_thread->status) {
         case STARTING_STATUS:
             pthread_mutex_lock(&rkisp1_thread->mutex);
@@ -144,20 +165,24 @@ void* rkisp1_thread_entry(void* arg)
             pthread_mutex_unlock(&rkisp1_thread->mutex);
             break;
         case RUN_STATUS:
-            rkisp1_3a_core_process_stats(rkisp1_thread->rkisp1_core);
+            if(rkisp1_3a_core_process_stats(rkisp1_thread->rkisp1_core))
+                break;
 
             rkisp1_3a_core_run_ae(rkisp1_thread->rkisp1_core);
             rkisp1_3a_core_run_awb(rkisp1_thread->rkisp1_core);
             rkisp1_3a_core_run_misc(rkisp1_thread->rkisp1_core);
             if (rkisp1_thread->mode == AAA_ENABLE_MODE)
                 rkisp1_3a_core_run_af(rkisp1_thread->rkisp1_core);
-
             rkisp1_3a_core_process_params(rkisp1_thread->rkisp1_core);
             break;
         default:
             break;
         }
     }
+
+    pthread_mutex_lock(&rkisp1_thread->mutex);
+    rkisp1_thread->status = EXITED_STATUS;
+    pthread_mutex_unlock(&rkisp1_thread->mutex);
 
     rkisp1_3a_core_deinit(rkisp1_thread->rkisp1_core);
 

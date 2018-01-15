@@ -130,7 +130,7 @@ enum cifisp_flt_mode {
 
 /**
  * enum cifisp_exp_ctrl_auotostop - stop modes
- * @CIFISP_EXP_CTRL_AUTOSTOP_0: continous measurement
+ * @CIFISP_EXP_CTRL_AUTOSTOP_0: continuous measurement
  * @CIFISP_EXP_CTRL_AUTOSTOP_1: stop measuring after a complete frame
  */
 enum cifisp_exp_ctrl_auotostop {

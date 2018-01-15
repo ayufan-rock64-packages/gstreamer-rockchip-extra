@@ -19,10 +19,10 @@
  *
  */
 #include "v4l2.h"
-#include "common.h"
 #include "params.h"
 #include "sensor.h"
 #include "stats.h"
+#include "thread.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -37,8 +37,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "ext/videodev2.h"
 
 static int __check_cap(int params_fd, int stats_fd)
 {
@@ -143,6 +141,7 @@ static int __init_mmap(struct RKISP1Core* rkisp1_core)
             PROT_READ | PROT_WRITE /* required */,
             MAP_SHARED /* recommended */,
             rkisp1_core->stats_fd, buf.m.offset);
+        memset(rkisp1_core->stats_buf[n_buffers].start, 0, rkisp1_core->stats_buf[n_buffers].length);
 
         if (rkisp1_core->stats_buf[n_buffers].start == MAP_FAILED) {
             printf("RKISP1: failed to mmap. bufer.index %d.\n", buf.index);
@@ -153,31 +152,54 @@ static int __init_mmap(struct RKISP1Core* rkisp1_core)
     return ret;
 }
 
-int rkisp1_3a_core_init(struct RKISP1Core* rkisp1_core, const char* params_node,
-    const char* stats_node, const char* sensor_node, const char* xml_path)
+static int __subscribe_event(int isp_fd)
+{
+    struct v4l2_event_subscription sub;
+    int ret;
+
+    memset(&sub, 0, sizeof(sub));
+    sub.type = V4L2_EVENT_FRAME_SYNC;
+
+    ret = ioctl(isp_fd, VIDIOC_SUBSCRIBE_EVENT, &sub);
+    if (ret != 0) {
+        printf("RKISP1: failed to ioctl VIDIOC_STREAMON for %d %s.\n",
+            errno, strerror(errno));
+        return ret;
+    }
+
+    return ret;
+}
+
+int rkisp1_3a_core_init(struct RKISP1Core* rkisp1_core, struct rkisp1_params* params)
 {
     int ret = 0;
 
-    rkisp1_core->sensor_fd = open(sensor_node, O_RDWR);
-    if (rkisp1_core->sensor_fd < 0) {
-        printf("RKISP1: Failed to open %s!\n", sensor_node);
+    rkisp1_core->isp_fd = open(params->isp_node, O_RDWR);
+    if (rkisp1_core->isp_fd < 0) {
+        printf("RKISP1: Failed to open %s!\n", params->isp_node);
         goto fail;
     }
 
-    rkisp1_core->params_fd = open(params_node, O_RDWR);
+    rkisp1_core->sensor_fd = open(params->sensor_node, O_RDWR);
+    if (rkisp1_core->sensor_fd < 0) {
+        printf("RKISP1: Failed to open %s!\n", params->sensor_node);
+        goto close_isp;
+    }
+
+    rkisp1_core->params_fd = open(params->params_node, O_RDWR);
     if (rkisp1_core->params_fd < 0) {
-        printf("RKISP1: Failed to open %s!\n", params_node);
+        printf("RKISP1: Failed to open %s!\n", params->params_node);
         goto close_sensor;
     }
 
-    rkisp1_core->stats_fd = open(stats_node, O_RDWR);
+    rkisp1_core->stats_fd = open(params->stats_node, O_RDWR);
     if (rkisp1_core->stats_fd < 0) {
-        printf("RKISP1: Failed to open %s!\n", stats_node);
+        printf("RKISP1: Failed to open %s!\n", params->stats_node);
         goto close_params;
     }
 
     if (__check_cap(rkisp1_core->params_fd, rkisp1_core->stats_fd)) {
-        printf("RKISP1: %s/%s is not rkisp1 params/stats!\n", params_node, stats_node);
+        printf("RKISP1: %s/%s is not rkisp1 params/stats!\n", params->params_node, params->stats_node);
         goto close_stats;
     }
 
@@ -191,17 +213,28 @@ int rkisp1_3a_core_init(struct RKISP1Core* rkisp1_core, const char* params_node,
         goto close_stats;
     }
 
-    rkisp1_core->mAiq = rk_aiq_init(xml_path);
+    if (__subscribe_event(rkisp1_core->isp_fd)) {
+        printf("RKISP1: failed to subscribe v4l2 event!\n");
+        goto close_stats;
+    }
+
+    rkisp1_core->mAiq = rk_aiq_init(params->xml_path);
     if (rkisp1_core->mAiq == NULL) {
         printf("RKISP1: failed to init aiq!\n");
         goto close_stats;
     }
-    memset(&rkisp1_core->aiq_results, 0, sizeof(struct AiqResults));
 
     if (rkisp1_get_sensor_desc(rkisp1_core->sensor_fd, &rkisp1_core->sensor_desc)) {
         printf("RKISP1: failed to init sensor desc!\n");
         goto close_stats;
     }
+
+    /* TODO: use params from user */
+    rkisp1_core->sensor_desc.isp_input_width = rkisp1_core->sensor_desc.sensor_output_width;
+    rkisp1_core->sensor_desc.isp_input_height = rkisp1_core->sensor_desc.sensor_output_height;
+    rkisp1_core->sensor_desc.isp_output_width = rkisp1_core->sensor_desc.sensor_output_width;
+    rkisp1_core->sensor_desc.isp_output_height = rkisp1_core->sensor_desc.sensor_output_height;
+    rkisp1_core->stats_skip = STATS_SKIP;
 
     return ret;
 
@@ -211,6 +244,8 @@ close_params:
     close(rkisp1_core->params_fd);
 close_sensor:
     close(rkisp1_core->sensor_fd);
+close_isp:
+    close(rkisp1_core->isp_fd);
 fail:
     return -1;
 }
@@ -227,6 +262,7 @@ void rkisp1_3a_core_deinit(struct RKISP1Core* rkisp1_core)
     close(rkisp1_core->params_fd);
     close(rkisp1_core->stats_fd);
     close(rkisp1_core->sensor_fd);
+    close(rkisp1_core->isp_fd);
 
     rk_aiq_deinit(rkisp1_core->mAiq);
 }
@@ -235,21 +271,6 @@ int rkisp1_3a_core_streamon(struct RKISP1Core* rkisp1_core)
 {
     enum v4l2_buf_type type;
     int i, ret = 0;
-
-    /* params should just use one buffer */
-    for (i = 0; i < 1; ++i) {
-        struct v4l2_buffer buf;
-
-        memset(&buf, 0, sizeof(buf));
-        buf.type = V4L2_BUF_TYPE_META_OUTPUT;
-        buf.memory = V4L2_MEMORY_MMAP;
-        buf.index = i;
-
-        ret = ioctl(rkisp1_core->params_fd, VIDIOC_QBUF, &buf);
-        if (ret != 0)
-            printf("RKISP1: failed to ioctl VIDIOC_QBUF for %d %s.\n",
-                errno, strerror(errno));
-    }
 
     type = V4L2_BUF_TYPE_META_OUTPUT;
     ret = ioctl(rkisp1_core->params_fd, VIDIOC_STREAMON, &type);
@@ -308,13 +329,37 @@ int rkisp1_3a_core_streamoff(struct RKISP1Core* rkisp1_core)
     return ret;
 }
 
+/*
+ * If stats is not for last frame, it will drop it.
+ */
 int rkisp1_3a_core_process_stats(struct RKISP1Core* rkisp1_core)
 {
     rk_aiq_statistics_input_params ispStatistics;
     struct rkisp1_stat_buffer* isp_stats;
     struct v4l2_buffer buf = { 0 };
-    int ret = 0;
+    struct v4l2_event ev;
+    long long sof_time;
+    int sequence = 0, ret = 0;
 
+    if(rkisp1_core->stats_skip > 0) {
+        /* Drop first coming stats */
+        memset(&rkisp1_core->aiq_results, 0, sizeof(struct AiqResults));
+
+        ispStatistics.ae_results = &rkisp1_core->aiq_results.aeResults;
+        ispStatistics.awb_results = &rkisp1_core->aiq_results.awbResults;
+        ispStatistics.af_results = &rkisp1_core->aiq_results.afResults;
+        ispStatistics.misc_results = &rkisp1_core->aiq_results.miscIspResults;
+
+        isp_stats = (struct rkisp1_stat_buffer*)rkisp1_core->stats_buf[0].start;
+        rkisp1_convert_stats(isp_stats, &ispStatistics);
+        rk_aiq_stats_set(rkisp1_core->mAiq, &ispStatistics, &rkisp1_core->sensor_desc);
+
+        rkisp1_core->stats_skip--;
+
+        return 0;
+    }
+
+redequeue:
     memset(&buf, 0, sizeof(buf));
     buf.type = V4L2_BUF_TYPE_META_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
@@ -325,14 +370,17 @@ int rkisp1_3a_core_process_stats(struct RKISP1Core* rkisp1_core)
         return ret;
     }
 
+    rkisp1_core->cur_frame_id = buf.sequence;
+    rkisp1_core->cur_time = buf.timestamp.tv_sec * 1000 * 1000 * 1000 + buf.timestamp.tv_usec * 1000;
     if (DEBUG)
-        printf("\t stats buf.sequence: %d\n", buf.sequence);
+        printf("stats buf.sequence: %d, time: %lld\n", rkisp1_core->cur_frame_id, rkisp1_core->cur_time);
 
     isp_stats = (struct rkisp1_stat_buffer*)rkisp1_core->stats_buf[buf.index].start;
     ispStatistics.ae_results = &rkisp1_core->aiq_results.aeResults;
     ispStatistics.awb_results = &rkisp1_core->aiq_results.awbResults;
     ispStatistics.af_results = &rkisp1_core->aiq_results.afResults;
     ispStatistics.misc_results = &rkisp1_core->aiq_results.miscIspResults;
+
     rkisp1_convert_stats(isp_stats, &ispStatistics);
     rk_aiq_stats_set(rkisp1_core->mAiq, &ispStatistics, &rkisp1_core->sensor_desc);
 
@@ -343,14 +391,97 @@ int rkisp1_3a_core_process_stats(struct RKISP1Core* rkisp1_core)
         return ret;
     }
 
+rewait:
+    if (sequence == 0) {
+        /*
+        * Wait for next-start-of-frame.
+        * It is used to strict sequence for params applying.
+        */
+        ret = ioctl(rkisp1_core->isp_fd, VIDIOC_DQEVENT, &ev);
+        if (ret != 0) {
+            printf("RKISP1: failed to ioctl VIDIOC_STREAMON for %d %s.\n",
+                errno, strerror(errno));
+            return ret;
+        }
+    }
+
+    sequence = ev.u.frame_sync.frame_sequence;
+    sof_time = ev.timestamp.tv_sec * 1000 * 1000 * 1000 + ev.timestamp.tv_nsec;
+
+    if (DEBUG)
+        printf("Start of Frame, sequence: %d, timestamp: %lld\n", sequence, sof_time);
+
+    if (sequence < rkisp1_core->cur_frame_id + 1) {
+        sequence = 0;
+        goto rewait;
+    } else if (sequence > rkisp1_core->cur_frame_id + 1) {
+        printf("RKISP1: Broken frame, so skip it %d\n", rkisp1_core->cur_frame_id);
+        goto redequeue;
+    } else if (sof_time - rkisp1_core->cur_time > 10 * 1000 * 1000) {
+        /* TODO: use fram rate, current fixed 10ms */
+        printf("RKISP1: Measurement late %lld, so skip frame %d\n",
+            sof_time - rkisp1_core->cur_time, rkisp1_core->cur_frame_id);
+        return -EAGAIN;
+    }
+
     return ret;
+}
+
+/*
+ * exp value usually take effect after two frames.
+ * so we need override ae result with current effecting
+ * exp value.
+ */
+static void __exp_delay(struct RKISP1Core* rkisp1_core)
+{
+    int i;
+
+    for (i = 0; i < EXPOSURE_GAIN_DELAY - 1; ++i) {
+        rkisp1_core->aGain[i] = rkisp1_core->aGain[i + 1];
+    }
+    rkisp1_core->aGain[EXPOSURE_GAIN_DELAY - 1] = rkisp1_core->aiq_results.aeResults.sensor_exposure.analog_gain_code_global;
+    rkisp1_core->aiq_results.aeResults.sensor_exposure.analog_gain_code_global = rkisp1_core->aGain[0];
+
+    for (i = 0; i < EXPOSURE_GAIN_DELAY - 1; ++i) {
+        rkisp1_core->dGain[i] = rkisp1_core->dGain[i + 1];
+    }
+    rkisp1_core->dGain[EXPOSURE_GAIN_DELAY - 1] = rkisp1_core->aiq_results.aeResults.sensor_exposure.digital_gain_global;
+    rkisp1_core->aiq_results.aeResults.sensor_exposure.digital_gain_global = rkisp1_core->dGain[0];
+
+    for (i = 0; i < EXPOSURE_TIME_DELAY - 1; ++i) {
+        rkisp1_core->exposure[i] = rkisp1_core->exposure[i + 1];
+    }
+    rkisp1_core->exposure[EXPOSURE_TIME_DELAY - 1] = rkisp1_core->aiq_results.aeResults.sensor_exposure.coarse_integration_time;
+    rkisp1_core->aiq_results.aeResults.sensor_exposure.coarse_integration_time = rkisp1_core->exposure[0];
 }
 
 int rkisp1_3a_core_process_params(struct RKISP1Core* rkisp1_core)
 {
     struct rkisp1_isp_params_cfg* isp_params;
     struct v4l2_buffer buf = { 0 };
-    int ret = 0;
+    int sequence, ret = 0;
+
+    sequence = buf.sequence;
+    if (DEBUG)
+        printf("params buf.sequence: %d\n", sequence);
+
+    isp_params = (struct rkisp1_isp_params_cfg*)rkisp1_core->params_buf[buf.index].start;
+    memset(isp_params, 0, sizeof(struct rkisp1_isp_params_cfg));
+    rkisp1_convert_params(isp_params, &rkisp1_core->aiq_results);
+    rkisp1_check_params(isp_params);
+
+    /* apply isp_params */
+    memset(&buf, 0, sizeof(buf));
+    buf.type = V4L2_BUF_TYPE_META_OUTPUT;
+    buf.memory = V4L2_MEMORY_MMAP;
+    /* params should use one buffers */
+    buf.index = 0;
+    ret = ioctl(rkisp1_core->params_fd, VIDIOC_QBUF, &buf);
+    if (ret != 0) {
+        printf("RKISP1: failed to ioctl VIDIOC_QBUF for %d %s.\n",
+            errno, strerror(errno));
+        return ret;
+    }
 
     /* apply sensor */
     if (rkisp1_apply_sensor_params(rkisp1_core->sensor_fd, &rkisp1_core->aiq_results.aeResults.sensor_exposure)) {
@@ -358,29 +489,12 @@ int rkisp1_3a_core_process_params(struct RKISP1Core* rkisp1_core)
             errno, strerror(errno));
         return ret;
     }
+    __exp_delay(rkisp1_core);
 
-    /* apply isp_params */
-    memset(&buf, 0, sizeof(buf));
-    buf.type = V4L2_BUF_TYPE_META_OUTPUT;
-    buf.memory = V4L2_MEMORY_MMAP;
+    /* wait params done */
     ret = ioctl(rkisp1_core->params_fd, VIDIOC_DQBUF, &buf);
     if (ret != 0) {
         printf("RKISP1: failed to ioctl VIDIOC_DQBUF for %d %s.\n",
-            errno, strerror(errno));
-        return ret;
-    }
-
-    if (DEBUG)
-        printf("\t params buf.sequence: %d\n", buf.sequence);
-
-    isp_params = (struct rkisp1_isp_params_cfg*)rkisp1_core->params_buf[buf.index].start;
-    memset(isp_params, 0, sizeof(struct rkisp1_isp_params_cfg));
-    rkisp1_convert_params(isp_params, &rkisp1_core->aiq_results);
-    rkisp1_check_params(isp_params);
-
-    ret = ioctl(rkisp1_core->params_fd, VIDIOC_QBUF, &buf);
-    if (ret != 0) {
-        printf("RKISP1: failed to ioctl VIDIOC_QBUF for %d %s.\n",
             errno, strerror(errno));
         return ret;
     }
@@ -392,6 +506,7 @@ void rkisp1_3a_core_run_ae(struct RKISP1Core* rkisp1_core)
 {
     rk_aiq_ae_input_params aeInputParams;
     rk_aiq_ae_results results;
+    rk_aiq_ae_manual_limits limits;
     int status = 0;
 
     memset(&aeInputParams, 0, sizeof(aeInputParams));
@@ -401,7 +516,14 @@ void rkisp1_3a_core_run_ae(struct RKISP1Core* rkisp1_core)
     aeInputParams.frame_use = rk_aiq_frame_use_preview;
     aeInputParams.flash_mode = rk_aiq_flash_mode_off;
 
-    aeInputParams.manual_limits = NULL;
+    aeInputParams.manual_limits = &limits;
+    limits.manual_exposure_time_min = -1;
+    limits.manual_exposure_time_max = -1;
+    limits.manual_frame_time_us_min = -1;
+    limits.manual_frame_time_us_max = -1;
+    limits.manual_iso_min = -1;
+    limits.manual_iso_max = -1;
+
     aeInputParams.manual_exposure_time_us = NULL;
     aeInputParams.manual_analog_gain = NULL;
     aeInputParams.manual_iso = NULL;

@@ -19,8 +19,6 @@
  *
  */
 #include "params.h"
-#include "common.h"
-#include "v4l2.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -35,10 +33,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "rkisp1/regs.h"
-#include "rkisp1/rk_aiq.h"
-#include "rkisp1/rkisp1-config.h"
 
 struct AiqResults mLastAiqResults;
 

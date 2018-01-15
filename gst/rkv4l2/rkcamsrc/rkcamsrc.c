@@ -519,6 +519,7 @@ static gboolean
 gst_rkcamsrc_start (GstBaseSrc * src)
 {
   GstRKCamSrc *rkcamsrc = GST_RKCAMSRC (src);
+  struct rkisp1_params rkisp1_init_params;
 
   rkcamsrc->offset = 0;
 
@@ -559,14 +560,17 @@ gst_rkcamsrc_start (GstBaseSrc * src)
   else
     GST_DEBUG_OBJECT (rkcamsrc, "Using ISP main path");
 
-  v4l2_subdev_close (rkcamsrc->sensor_subdev);
-  rkcamsrc->thread_3a =
-      RKISP1_3A_THREAD_CREATE (media_entity_get_devname
-      (rkcamsrc->isp_params_dev),
-      media_entity_get_devname (rkcamsrc->isp_stats_dev),
-      media_entity_get_devname (rkcamsrc->sensor_subdev),
-      rkcamsrc->capture_object->xml_path, rkcamsrc->capture_object->isp_mode);
-  RKISP1_3A_THREAD_START (rkcamsrc->thread_3a);
+  rkisp1_init_params.isp_node = media_entity_get_devname (rkcamsrc->isp_subdev);
+  rkisp1_init_params.params_node = media_entity_get_devname
+      (rkcamsrc->isp_params_dev);
+  rkisp1_init_params.stats_node = media_entity_get_devname
+      (rkcamsrc->isp_stats_dev);
+  rkisp1_init_params.sensor_node = media_entity_get_devname
+      (rkcamsrc->sensor_subdev);
+  rkisp1_init_params.xml_path = rkcamsrc->capture_object->xml_path;
+  rkisp1_init_params.mode = rkcamsrc->capture_object->isp_mode;
+
+  rkcamsrc->thread_3a = RKISP1_3A_THREAD_CREATE (&rkisp1_init_params);
 
   return TRUE;
 }

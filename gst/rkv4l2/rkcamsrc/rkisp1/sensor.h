@@ -21,10 +21,7 @@
 #ifndef __RKISP1_SENSOR_H__
 #define __RKISP1_SENSOR_H__
 
-#include <stdbool.h>
-
-#include "rkisp1/rk_aiq.h"
-#include "rkisp1/rkisp1-config.h"
+#include "common.h"
 
 int rkisp1_get_sensor_desc(int fd, rk_aiq_exposure_sensor_descriptor* sensor_desc);
 int rkisp1_apply_sensor_params(int fd, rk_aiq_exposure_sensor_parameters* expParams);

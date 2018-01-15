@@ -35,10 +35,25 @@
 #define RUN_STATUS 1
 #define STARTING_STATUS 2
 #define STOPING_STATUS 3
-#define EXIT_STATUS 4
+#define EXITING_STATUS 4
+#define EXITED_STATUS 5
 
 struct media_entity;
 struct RKISP1Core;
+
+struct rkisp1_params {
+    const char* isp_node;
+    const char* params_node;
+    const char* stats_node;
+    const char* sensor_node;
+    const char* xml_path;
+    int mode;
+
+    unsigned short isp_input_width;
+    unsigned short isp_input_height;
+    unsigned short isp_output_width;
+    unsigned short isp_output_height;
+};
 
 struct RKISP1Thread {
     pthread_t tid;
@@ -50,8 +65,7 @@ struct RKISP1Thread {
     struct RKISP1Core* rkisp1_core;
 };
 
-struct RKISP1Thread* RKISP1_3A_THREAD_CREATE(const char* params_node,
-    const char* stats_node, const char* sensor_node, const char* xml_path, int mode);
+struct RKISP1Thread* RKISP1_3A_THREAD_CREATE(struct rkisp1_params* params);
 void RKISP1_3A_THREAD_EXIT(struct RKISP1Thread* rkisp1_thread);
 
 void RKISP1_3A_THREAD_START(struct RKISP1Thread* rkisp1_thread);

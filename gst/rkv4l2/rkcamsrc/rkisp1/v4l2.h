@@ -27,37 +27,43 @@
 
 #include <stdbool.h>
 
-#include "rkisp1/rk_aiq.h"
-#include "rkisp1/rkisp1-config.h"
+#include "common.h"
 
 #define RKISP1_MAX_BUF 1
+
+struct rkisp1_params;
 
 struct RKISP1Buffer {
     void* start;
     unsigned long length;
 };
 
-struct AiqResults {
-    rk_aiq_ae_results aeResults;
-    rk_aiq_awb_results awbResults;
-    rk_aiq_af_results afResults;
-    rk_aiq_misc_isp_results miscIspResults;
-};
-
 struct RKISP1Core {
+    /* fd */
+    int isp_fd;
     int params_fd;
     int stats_fd;
     int sensor_fd;
 
+    /* aiq */
     rk_aiq* mAiq;
     rk_aiq_exposure_sensor_descriptor sensor_desc;
     struct AiqResults aiq_results;
     struct RKISP1Buffer params_buf[RKISP1_MAX_BUF];
     struct RKISP1Buffer stats_buf[RKISP1_MAX_BUF];
+
+    /* gain delay */
+    int aGain[EXPOSURE_GAIN_DELAY];
+    int dGain[EXPOSURE_GAIN_DELAY];
+    int exposure[EXPOSURE_TIME_DELAY];
+
+    /* other */
+    int cur_frame_id;
+    long long cur_time;
+    int stats_skip;
 };
 
-int rkisp1_3a_core_init(struct RKISP1Core* rkisp1_core, const char* params_node,
-    const char* stats_node, const char* sensor_node, const char* xml_path);
+int rkisp1_3a_core_init(struct RKISP1Core* rkisp1_core, struct rkisp1_params* params);
 void rkisp1_3a_core_deinit(struct RKISP1Core* rkisp1_core);
 
 int rkisp1_3a_core_process_stats(struct RKISP1Core* rkisp1_core);
