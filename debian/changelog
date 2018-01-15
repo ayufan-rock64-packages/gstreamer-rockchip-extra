@@ -1,3 +1,9 @@
+gstreamer1.0-rockchip-extra (20180115-1) UNRELEASED; urgency=medium
+
+  * rkcamsrc: add AE/AWB support
+
+ -- Jacob Chen <jacob2.chen@rock-chips.com>  Mon, 15 Jan 2018 10:13:38 +0800
+
 gstreamer1.0-rockchip-extra (20171218-1) UNRELEASED; urgency=medium
 
   * rkv4l2: makefile: use top_srcdit
