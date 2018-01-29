@@ -158,9 +158,7 @@ int rkisp1_apply_sensor_params(int fd, rk_aiq_exposure_sensor_parameters* expPar
         memset(&ctrl, 0, sizeof(ctrl));
         ctrl.id = V4L2_CID_GAIN;
         ctrl.value = expParams->digital_gain_global;
-        ret = ioctl(fd, VIDIOC_S_CTRL, &ctrl);
-        if (ret < 0)
-            return -errno;
+        ioctl(fd, VIDIOC_S_CTRL, &ctrl);
     }
 
     memset(&ctrl, 0, sizeof(ctrl));
