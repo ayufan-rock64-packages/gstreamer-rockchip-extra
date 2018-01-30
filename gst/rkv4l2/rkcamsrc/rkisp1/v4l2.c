@@ -417,7 +417,7 @@ rewait:
     } else if (sequence > rkisp1_core->cur_frame_id + 1) {
         printf("RKISP1: Broken frame, so skip it %d\n", rkisp1_core->cur_frame_id);
         goto redequeue;
-    } else if (sof_time - rkisp1_core->cur_time > 10 * 1000 * 1000) {
+    } else if ( rkisp1_core->cur_time - sof_time > 10 * 1000 * 1000) {
         /* TODO: use fram rate, current fixed 10ms */
         printf("RKISP1: Measurement late %lld, so skip frame %d\n",
             sof_time - rkisp1_core->cur_time, rkisp1_core->cur_frame_id);
