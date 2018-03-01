@@ -544,8 +544,7 @@ gst_x_image_sink_ximage_put (GstRkXImageSink * ximagesink, GstBuffer * ximage)
   }
   dst.w = ximagesink->xwindow->width;
   dst.h = ximagesink->xwindow->height;
-
-  gst_video_sink_center_rect (src, dst, &result, FALSE);
+  result = dst;
 
   g_mutex_lock (&ximagesink->x_lock);
 
