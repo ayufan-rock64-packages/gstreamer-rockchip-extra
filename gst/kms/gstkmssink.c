@@ -92,7 +92,8 @@ enum
   PROP_CONNECTOR_ID,
   PROP_PLANE_ID,
   PROP_FORCE_MODESETTING,
-  PROP_N
+  PROP_N,
+  PROP_DISPLAY_RATIO,
 };
 
 static GParamSpec *g_properties[PROP_N] = { NULL, };
@@ -800,6 +801,12 @@ gst_kms_sink_calculate_display_ratio (GstKMSSink * self, GstVideoInfo * vinfo)
         gst_util_uint64_scale_int (video_height, dar_n, dar_d);
     GST_VIDEO_SINK_HEIGHT (self) = video_height;
   }
+
+  if (!self->display_ratio_enabled) {
+    GST_VIDEO_SINK_WIDTH (self) = video_width;
+    GST_VIDEO_SINK_HEIGHT (self) = video_height;
+  }
+
   GST_DEBUG_OBJECT (self, "scaling to %dx%d", GST_VIDEO_SINK_WIDTH (self),
       GST_VIDEO_SINK_HEIGHT (self));
 
@@ -1399,6 +1406,9 @@ gst_kms_sink_set_property (GObject * object, guint prop_id,
     case PROP_FORCE_MODESETTING:
       sink->modesetting_enabled = g_value_get_boolean (value);
       break;
+    case PROP_DISPLAY_RATIO:
+      sink->display_ratio_enabled = g_value_get_boolean (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -1426,6 +1436,9 @@ gst_kms_sink_get_property (GObject * object, guint prop_id,
     case PROP_FORCE_MODESETTING:
       g_value_set_boolean (value, sink->modesetting_enabled);
       break;
+    case PROP_DISPLAY_RATIO:
+      g_value_set_boolean (value, sink->display_ratio_enabled);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -1450,6 +1463,7 @@ gst_kms_sink_init (GstKMSSink * sink)
   sink->fd = -1;
   sink->conn_id = -1;
   sink->plane_id = -1;
+  sink->display_ratio_enabled = TRUE;
   gst_poll_fd_init (&sink->pollfd);
   sink->poll = gst_poll_new (TRUE);
   gst_video_info_init (&sink->vinfo);
@@ -1540,6 +1554,15 @@ gst_kms_sink_class_init (GstKMSSinkClass * klass)
       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_CONSTRUCT);
 
   g_object_class_install_properties (gobject_class, PROP_N, g_properties);
+
+   /**
+   * kmssink:display-ratio:
+   *
+   * display withvideo ratio.
+   */
+  g_object_class_install_property (gobject_class, PROP_DISPLAY_RATIO,
+      g_param_spec_boolean ("display-ratio", "", "", TRUE,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 static gboolean

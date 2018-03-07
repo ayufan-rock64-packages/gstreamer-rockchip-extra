@@ -62,6 +62,7 @@ struct _GstKMSSink
   gboolean has_async_page_flip;
 
   gboolean modesetting_enabled;
+  gboolean display_ratio_enabled;
 
   GstVideoInfo vinfo;
   GstCaps *allowed_caps;
