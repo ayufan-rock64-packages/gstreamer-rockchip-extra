@@ -802,11 +802,6 @@ gst_kms_sink_calculate_display_ratio (GstKMSSink * self, GstVideoInfo * vinfo)
     GST_VIDEO_SINK_HEIGHT (self) = video_height;
   }
 
-  if (!self->display_ratio_enabled) {
-    GST_VIDEO_SINK_WIDTH (self) = video_width;
-    GST_VIDEO_SINK_HEIGHT (self) = video_height;
-  }
-
   GST_DEBUG_OBJECT (self, "scaling to %dx%d", GST_VIDEO_SINK_WIDTH (self),
       GST_VIDEO_SINK_HEIGHT (self));
 
@@ -1318,8 +1313,13 @@ gst_kms_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
     src.h = GST_VIDEO_INFO_HEIGHT (&self->vinfo);
   }
 
-  kms_get_render_rectangle (self, &result.x, &result.y, &result.w, &result.h);
-  gst_video_sink_center_rect (src, result, &result, TRUE);
+  kms_get_render_rectangle (self, &dst.x, &dst.y, &dst.w, &dst.h);
+  if (self->display_ratio_enabled) {
+     gst_video_sink_center_rect (src, dst, &result, TRUE);
+  } else {
+    /* force fullscreen */
+    result = dst;
+  }
 
   /* handle hardware limition */
   if (src.w >= 3840)
