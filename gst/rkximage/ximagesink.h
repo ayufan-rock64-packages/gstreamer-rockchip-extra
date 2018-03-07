@@ -139,6 +139,7 @@ struct _GstRkXImageSink
   /* capabilities */
   gboolean has_prime_import;
   gboolean has_async_page_flip;
+  gboolean display_ratio_enabled;
 
   char *display_name;
 

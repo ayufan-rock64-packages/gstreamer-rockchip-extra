@@ -68,7 +68,8 @@ enum
   PROP_WINDOW_HEIGHT,
   PROP_DRIVER_NAME,
   PROP_CONNECTOR_ID,
-  PROP_PLANE_ID
+  PROP_PLANE_ID,
+  PROP_DISPLAY_RATIO,
 };
 
 /* ============================================================= */
@@ -575,8 +576,11 @@ gst_x_image_sink_ximage_put (GstRkXImageSink * ximagesink, GstBuffer * ximage)
 
   xwindow_get_render_rectangle (ximagesink, &result.x, &result.y, &result.w,
       &result.h);
-  xwindow_calculate_display_ratio (ximagesink, &result.x, &result.y, &result.w,
-      &result.h);
+  
+  /* Enable the aspect ratio display */
+  if (ximagesink->display_ratio_enabled)
+    xwindow_calculate_display_ratio (ximagesink, &result.x, &result.y, &result.w,
+        &result.h);
 
   /* Adjust for fake 4k */
   if (ximagesink->hdisplay * ximagesink->vdisplay > 3800 * 2000 &&
@@ -588,6 +592,7 @@ gst_x_image_sink_ximage_put (GstRkXImageSink * ximagesink, GstBuffer * ximage)
     result.h *= 2;
   }
 
+  /* video_info missing */
   if (video_info) {
     pitches[0] = video_info->stride[0];
     offsets[0] = video_info->offset[0];
@@ -611,14 +616,15 @@ gst_x_image_sink_ximage_put (GstRkXImageSink * ximagesink, GstBuffer * ximage)
     goto out;
   }
 
+   /* Skip Line to avoid blink */
   if (scl_w >= 2 && scl_h >= 4) {
-    /* Skip Line */
     src.h /= 2;
     pitches[0] *= 2;
     pitches[1] *= 2;
   }
+  
+   /* drop pixel */
   if (src.w >= 4090) {
-    /* drop pixel */
     src.w = 3840;
   }
 
@@ -1776,6 +1782,9 @@ gst_x_image_sink_set_property (GObject * object, guint prop_id,
     case PROP_PLANE_ID:
       ximagesink->plane_id = g_value_get_int (value);
       break;
+    case PROP_DISPLAY_RATIO:
+      ximagesink->display_ratio_enabled = g_value_get_boolean (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -1825,6 +1834,9 @@ gst_x_image_sink_get_property (GObject * object, guint prop_id,
       break;
     case PROP_PLANE_ID:
       g_value_set_int (value, ximagesink->plane_id);
+      break;
+    case PROP_DISPLAY_RATIO:
+      g_value_set_boolean (value, ximagesink->display_ratio_enabled);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1908,6 +1920,7 @@ gst_x_image_sink_init (GstRkXImageSink * ximagesink)
   ximagesink->synchronous = FALSE;
   ximagesink->handle_events = TRUE;
   ximagesink->handle_expose = TRUE;
+  ximagesink->display_ratio_enabled = TRUE;
 
   ximagesink->fd = -1;
   ximagesink->conn_id = -1;
@@ -2195,6 +2208,15 @@ gst_x_image_sink_class_init (GstRkXImageSinkClass * klass)
   g_object_class_install_property (gobject_class, PROP_PLANE_ID,
       g_param_spec_int ("plane-id", "Plane ID", "DRM plane id", -1, G_MAXINT32,
           -1, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_CONSTRUCT));
+
+   /**
+   * kmssink:display-ratio:
+   *
+   * display withvideo ratio.
+   */
+  g_object_class_install_property (gobject_class, PROP_DISPLAY_RATIO,
+      g_param_spec_boolean ("display-ratio", "", "", TRUE,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_set_static_metadata (gstelement_class,
       "Video sink", "Sink/Video",
