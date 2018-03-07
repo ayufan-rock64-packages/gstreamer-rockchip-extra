@@ -21,6 +21,7 @@ This software has been tested only with kernel after 4.4.
 
 * `display` : X Display name, for window display : (optional)
 * `connector-id` : DRM connector id, for drm display : (optional)
+* `display-ratio` :  Enable the aspect ratio display : (default : true)
 
 ### rgaconvert
 [Pipeline example](https://github.com/rockchip-linux/rk-rootfs-build/blob/master/overlay-debug/usr/local/bin/test_rga.sh)
@@ -28,7 +29,7 @@ This software has been tested only with kernel after 4.4.
 Most of the properties are the same as that of v4l2 transform, below are rockchip extend properties:
 * `rotation` : 90-degree step rotation mode for the inner video frame : (default : 0)
 * `hflip` : horizontal flip : (default : false)
-* `vflip` : ve sink pad rtical flip : (default : false)
+* `vflip` : vertical flip : (default : false)
 * `input-crop` : [Selection-crop](https://01.org/linuxgraphics/gfx-docs/drm/media/uapi/v4l/selection-api-003.html), should be "left"x"top"x"width"x"height": (optional)
 * `output-crop` : [Selection-compose](https://01.org/linuxgraphics/gfx-docs/drm/media/uapi/v4l/selection-api-003.html), should be "left"x"top"x"width"x"height" : (optional) 
 * `vpu-stride` : Use 4 alignment for input height, to handle VPU buffer correctly. Note if it's enabled, input-crop are unavailable.  : (default : false) 
