@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# gstreamer-rockchip autogen.sh
+# gstreamer-rockchip-extra autogen.sh
 #
 # Run this to generate all the initial makefiles, etc.
 #
@@ -46,7 +46,7 @@ fi
 # GNU gettext automake support doesn't get along with git.
 # https://bugzilla.gnome.org/show_bug.cgi?id=661128
 if test -d po ; then
-  touch -t 200001010000 po/gstreamer-rockchip-1.0.pot
+  touch -t 200001010000 po/gstreamer-rockchip-extra-1.0.pot
 fi
 
 CONFIGURE_DEF_OPT='--enable-maintainer-mode --enable-gtk-doc'
