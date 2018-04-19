@@ -532,7 +532,7 @@ void rkisp1_3a_core_run_ae(struct RKISP1Core* rkisp1_core)
     aeInputParams.operation_mode = rk_aiq_ae_operation_mode_automatic;
     aeInputParams.metering_mode = rk_aiq_ae_metering_mode_evaluative;
     aeInputParams.priority_mode = rk_aiq_ae_priority_mode_normal;
-    aeInputParams.flicker_reduction_mode = rk_aiq_ae_flicker_reduction_off;
+    aeInputParams.flicker_reduction_mode = rk_aiq_ae_flicker_reduction_50hz;
 
     aeInputParams.window = NULL;
 
