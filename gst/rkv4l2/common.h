@@ -86,22 +86,20 @@ struct _GstV4l2Object;
 // utils
 gboolean rk_common_v4l2device_find_by_name (const char *name, char *ret_name);
 
-inline void
-gst_rect_to_v4l2_rect (GstVideoRectangle * gst_rect, struct v4l2_rect *rect)
-{
-  rect->left = gst_rect->x;
-  rect->top = gst_rect->y;
-  rect->width = gst_rect->w;
-  rect->height = gst_rect->h;
+#define gst_rect_to_v4l2_rect(gst_rect, rect) \
+{ \
+  (rect)->left = (gst_rect)->x; \
+  (rect)->top = (gst_rect)->y; \
+  (rect)->width = (gst_rect)->w; \
+  (rect)->height = (gst_rect)->h; \
 }
 
-inline void
-v4l2_rect_to_gst_rect (struct v4l2_rect *rect, GstVideoRectangle * gst_rect)
-{
-  gst_rect->x = rect->left;
-  gst_rect->y = rect->top;
-  gst_rect->w = rect->width;
-  gst_rect->h = rect->height;
+#define v4l2_rect_to_gst_rect(rect, gst_rect) \
+{ \
+  (gst_rect)->x = (rect)->left; \
+  (gst_rect)->y = (rect)->top; \
+  (gst_rect)->w = (rect)->width; \
+  (gst_rect)->h = (rect)->height; \
 }
 
 // v4l2

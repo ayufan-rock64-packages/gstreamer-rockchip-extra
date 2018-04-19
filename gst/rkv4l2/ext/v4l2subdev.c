@@ -609,7 +609,7 @@ static int v4l2_subdev_parse_setup_format(struct media_device *media,
 
 int v4l2_subdev_parse_setup_formats(struct media_device *media, const char *p)
 {
-	char *end;
+	char *end = 0;
 	int ret;
 
 	do {

@@ -40,7 +40,7 @@
 
 static int __check_cap(int params_fd, int stats_fd)
 {
-    struct v4l2_capability cap = { 0 };
+    struct v4l2_capability cap = {{ 0 }};
     int ret = 0;
 
     ret = ioctl(params_fd, VIDIOC_QUERYCAP, &cap);
