@@ -219,7 +219,7 @@ int media_setup_link(struct media_device *media,
 		     struct media_pad *sink,
 		     __u32 flags)
 {
-	struct media_link *link;
+	struct media_link *link = 0;
 	struct media_link_desc ulink;
 	unsigned int i;
 	int ret;
@@ -264,11 +264,11 @@ int media_setup_link(struct media_device *media,
 		goto done;
 	}
 
-	link->flags = ulink.flags;
-	link->twin->flags = ulink.flags;
-
-	ret = 0;
-
+	if(0 != link) {
+		link->flags = ulink.flags;
+		link->twin->flags = ulink.flags;
+		ret = 0;
+	}
 done:
 	media_device_close(media);
 	return ret;
